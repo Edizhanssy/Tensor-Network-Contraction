@@ -1,0 +1,35 @@
+Thu Oct 22 07:30:03 2026    deep.prof
+
+         906132 function calls (903047 primitive calls) in 33.726 seconds
+
+   Ordered by: cumulative time
+   List reduced from 943 to 25 due to restriction <25>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+    117/1    0.000    0.000   33.726   33.726 {built-in method builtins.exec}
+        1    0.000    0.000   33.726   33.726 sweep_circuits.py:1(<module>)
+        1    0.000    0.000   33.621   33.621 sweep_circuits.py:35(single_run)
+        1    0.034    0.034   33.603   33.603 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:300(MPSCalculus)
+     2999    0.002    0.000   16.720    0.006 C:\Users\USER\PycharmProjects\tensornetworkcontraction\venv\lib\site-packages\numpy\_core\einsumfunc.py:1057(einsum)
+     2999   16.718    0.006   16.718    0.006 {built-in method numpy._core._multiarray_umath.c_einsum}
+     1697    0.085    0.000   15.836    0.009 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:162(tensorSwap)
+      272    0.038    0.000   14.840    0.055 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:246(moveAdjacent)
+     2422   12.864    0.005   12.892    0.005 C:\Users\USER\PycharmProjects\tensornetworkcontraction\venv\lib\site-packages\numpy\linalg\_linalg.py:1639(svd)
+       30    0.038    0.001    7.118    0.237 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:266(canonicalize)
+      439    0.535    0.001    2.740    0.006 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:147(ContractionOrder)
+   301722    2.194    0.000    2.205    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:138(logSize)
+      272    0.001    0.000    1.076    0.004 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:255(mergeAdjacent)
+      108    0.871    0.008    0.893    0.008 C:\Users\USER\PycharmProjects\tensornetworkcontraction\venv\lib\site-packages\numpy\linalg\_linalg.py:928(qr)
+      439    0.003    0.000    0.279    0.001 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:187(moveToTail)
+      439    0.003    0.000    0.186    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:194(moveToHead)
+   152/10    0.001    0.000    0.120    0.012 <frozen importlib._bootstrap>:1022(_find_and_load)
+   152/10    0.000    0.000    0.120    0.012 <frozen importlib._bootstrap>:987(_find_and_load_unlocked)
+   146/11    0.000    0.000    0.117    0.011 <frozen importlib._bootstrap>:664(_load_unlocked)
+   116/10    0.000    0.000    0.116    0.012 <frozen importlib._bootstrap_external>:877(exec_module)
+   221/11    0.000    0.000    0.113    0.010 <frozen importlib._bootstrap>:233(_call_with_frames_removed)
+    360/9    0.000    0.000    0.093    0.010 {built-in method builtins.__import__}
+   209/35    0.000    0.000    0.088    0.003 <frozen importlib._bootstrap>:1053(_handle_fromlist)
+        1    0.000    0.000    0.084    0.084 C:\Users\USER\PycharmProjects\tensornetworkcontraction\venv\lib\site-packages\numpy\__init__.py:1(<module>)
+     7485    0.079    0.000    0.079    0.000 {method 'reshape' of 'numpy.ndarray' objects}
+
+

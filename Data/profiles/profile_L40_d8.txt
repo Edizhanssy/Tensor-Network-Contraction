@@ -1,0 +1,51 @@
+L=40 d=8  tensors=14520  wall (with profiler) = 5.4 s  eps = 1.45e-26  ln|amp| = -660.740021
+bonds: max chi = 64, max D = 16, chi_hat hits = 0, D_hat hits = 0
+
+===== sorted by own time =====
+         9421621 function calls in 5.385 seconds
+
+   Ordered by: internal time
+   List reduced from 94 to 15 due to restriction <15>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+    64868    0.708    0.000    1.045    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\venv\lib\site-packages\numpy\linalg\_linalg.py:1639(svd)
+    41107    0.464    0.000    3.128    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:255(tensorSwap)
+    40420    0.392    0.000    1.078    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\venv\lib\site-packages\numpy\linalg\_linalg.py:928(qr)
+   114113    0.319    0.000    0.319    0.000 {built-in method numpy._core._multiarray_umath.c_einsum}
+   235458    0.240    0.000    0.240    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+   151194    0.200    0.000    0.581    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:175(edgeKey)
+        1    0.191    0.191    5.396    5.396 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:487(MPSCalculus)
+   151194    0.157    0.000    0.157    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:160(edgeCost)
+    76307    0.143    0.000    1.281    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:236(moveCenter)
+   194351    0.138    0.000    0.390    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\venv\lib\site-packages\numpy\_core\fromnumeric.py:69(_wrapreduction)
+   194351    0.121    0.000    0.527    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\venv\lib\site-packages\numpy\_core\fromnumeric.py:2338(sum)
+   151194    0.107    0.000    0.116    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:167(triangles)
+    40420    0.097    0.000    0.347    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\venv\lib\site-packages\numpy\lib\_twodim_base_impl.py:497(triu)
+    14520    0.096    0.000    0.439    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:115(modifyLegtoMPS)
+   151194    0.094    0.000    0.094    0.000 {built-in method builtins.round}
+
+
+===== sorted by cumulative time =====
+         9421621 function calls in 5.385 seconds
+
+   Ordered by: cumulative time
+   List reduced from 94 to 15 due to restriction <15>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.191    0.191    5.396    5.396 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:487(MPSCalculus)
+    41107    0.464    0.000    3.128    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:255(tensorSwap)
+    76307    0.143    0.000    1.281    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:236(moveCenter)
+    14519    0.023    0.000    1.255    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:307(moveToTail)
+     6162    0.016    0.000    1.232    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:372(moveAdjacent)
+    64868    0.041    0.000    1.092    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:9(safeSVD)
+    40420    0.392    0.000    1.078    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\venv\lib\site-packages\numpy\linalg\_linalg.py:928(qr)
+    64868    0.708    0.000    1.045    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\venv\lib\site-packages\numpy\linalg\_linalg.py:1639(svd)
+    14519    0.021    0.000    0.790    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:315(moveToHead)
+   151194    0.200    0.000    0.581    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:175(edgeKey)
+   194351    0.121    0.000    0.527    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\venv\lib\site-packages\numpy\_core\fromnumeric.py:2338(sum)
+   104172    0.048    0.000    0.485    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:186(pushEdge)
+        1    0.004    0.004    0.444    0.444 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:106(modifyTensortoMPS)
+    14520    0.096    0.000    0.439    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\main.py:115(modifyLegtoMPS)
+   194351    0.138    0.000    0.390    0.000 C:\Users\USER\PycharmProjects\tensornetworkcontraction\venv\lib\site-packages\numpy\_core\fromnumeric.py:69(_wrapreduction)
+
+
