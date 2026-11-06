@@ -34,7 +34,6 @@ def lpt(times, P):
 
 def child(family, circuit, K, catn_dir):
     import catn_compare as cc
-    import main_parallel
     A, legs = cc.build(family, circuit, catn_dir)
     st = {}
     lnZ, eps = main.MPSCalculus(A, legs, DHEAD, XHEAD, stats=st, K=K)

@@ -158,24 +158,19 @@ def logSize(mps):
 
 
 def edgeCost(A_m, legs, ls, mu, p):
-    #  cost of contracting edge (mu, legs[mu][p]). ONE place computes it, both when an entry is
-    # pushed and when it is checked, so a still-valid entry compares exactly equal (same floats).
+    # cost of contracting edge (mu, legs[mu][p])!
     nu = legs[mu][p]
     return ls[mu] + ls[nu] - 2 * np.log(A_m[mu][p].shape[1])
 
 
 def triangles(legs, mu, nu):
-    # B3: number of common neighbours of mu and nu (= triangles on edge mu-nu).
-    # No self-loops (mu not in legs[mu], nu not in legs[nu]), so the two ends never count themselves.
-    # A common neighbour k becomes a parallel bond i=k after the merge -> mergeAdjacent + cutBond
-    # can only shrink it: a free compression, hence the tie-break.
+    # number of common neighbors of mu and nu [= triangles on edge mu-nu]
     return len(set(legs[mu]) & set(legs[nu]))
 
 
 def edgeKey(A_m, legs, ls, mu, nu):
-    # B3 heap key (mu < nu), as CATN: cost rounded to a log2 bucket, inside a bucket the edge with the
-    # most triangles first (min-heap -> -tri), then the smaller IDs (deterministic).
-    # ONE place builds the key, both on push and in isValid, so a still-valid entry compares exactly equal.
+    # heap key (mu < nu): cost rounded to a log2 bucket, inside a bucket the edge with the
+    # most triangles first (min-heap -> -tri), then the smaller IDs
     p = legs[mu].index(nu)
     cost = edgeCost(A_m, legs, ls, mu, p)
     bucket = int(round(cost / np.log(2)))
@@ -191,11 +186,11 @@ def pushEdge(heap, A_m, legs, ls, a, b):
 
 def isValid(entry, A_m, legs, ls):
     _, _, mu, nu = entry                               # (bucket, -tri, mu, nu)
-    if len(A_m[mu]) == 0 or len(A_m[nu]) == 0:        # 1. an end was contracted away
+    if len(A_m[mu]) == 0 or len(A_m[nu]) == 0:         # an end was contracted away
         return False
-    if nu not in legs[mu]:                             # 2. no longer neighbours (before edgeKey: .index would fail)
+    if nu not in legs[mu]:                             # no longer neighbors
         return False
-    return edgeKey(A_m, legs, ls, mu, nu) == entry     # 3. bucket or triangles changed since the push?
+    return edgeKey(A_m, legs, ls, mu, nu) == entry     # bucket or triangles changed since the push?
 
 
 def popBestEdge(heap, A_m, legs, ls):
@@ -203,21 +198,20 @@ def popBestEdge(heap, A_m, legs, ls):
     while heap:
         entry = heapq.heappop(heap)
         if isValid(entry, A_m, legs, ls):
-            return entry[-2], entry[-1]                # (.., mu, nu): from the end, robust to key changes
+            return entry[-2], entry[-1]
     raise RuntimeError("heap is empty but edges are left: an update was not pushed")
 
-
+# Kernel for red-black methodology:
 def touched(legs, i, j):
-    # C1: tensors whose data (A_m, legs, ls, cano) the contraction i <- j reads or writes.
-    # i survives, j disappears: every neighbour k of j gets legs[k] j -> i (and moveAdjacent/cutBond
-    # if k is also a neighbour of i). i's other neighbours are NOT touched: they keep pointing to i.
-    return {j} | set(legs[j])                          # legs[j] already contains i
+    # tensors whose data (A_m, legs, ls, cano) the contraction i <- j reads or writes.
+    # i survives, j disappears: every neighbour k of j gets legs[k] j -> i.
+    # legs[j] already contains i
+    return {j} | set(legs[j])
 
 
 def selectBatch(heap, A_m, legs, ls, K=None):
-    # C1: one round = edges of the cheapest bucket whose touched sets are pairwise disjoint.
+    # one round = edges of the cheapest bucket whose touched sets are pairwise disjoint.
     # Conflicting and out-of-bucket entries go back to the heap: they are still live edges.
-    # K caps the batch size (K=1 -> exactly popBestEdge, i.e. the serial B4 order).
     batch, used, deferred = [], set(), []
     b0 = None
     while heap:
@@ -244,10 +238,8 @@ def selectBatch(heap, A_m, legs, ls, K=None):
 
 
 def ContractionOrder(A_m, legs, ls, rng=None, tie_tol=1e-9):
-    # rng=None: deterministic greedy, the FIRST cheapest edge wins (baseline behaviour)
-    # rng given: collect ALL edges whose cost equals the minimum (up to tie_tol, since the
-    #            costs are sums of logs and log2+log2 == log4 may fail in floating point)
-    #            and pick one of them at random -> a different but equally greedy order
+    # rng=None: deterministic greedy, the FIRST cheapest edge wins
+    # rng given: collect ALL edges whose cost equals the minimum
     best_cost = np.inf
     best_edges = []
     for mu in range(len(legs)):
@@ -259,7 +251,7 @@ def ContractionOrder(A_m, legs, ls, rng=None, tie_tol=1e-9):
                     if cost < best_cost:
                         best_cost = cost
                         best_edges = [(mu, nu)]
-                elif cost < best_cost - tie_tol:          # strictly cheaper: new candidate list
+                elif cost < best_cost - tie_tol:          # strictly cheaper compared to baseline: new candidate list!
                     best_cost = cost
                     best_edges = [(mu, nu)]
                 elif abs(cost - best_cost) <= tie_tol and (mu, nu) not in best_edges:   # a tie
@@ -271,7 +263,7 @@ def ContractionOrder(A_m, legs, ls, rng=None, tie_tol=1e-9):
 
 def moveCenter(A_m, cano, i, target):
     # move the orthogonality center of MPS i from cano[i] to site `target` with QR steps
-    # (left of the center: left-canonical, right of it: right-canonical)
+    # (left of the center: left-canonical, right of it: right-canonical)!!
     c = cano[i]
     while c < target:                                   # one step right: Q stays, R goes right
         l, ph, r = A_m[i][c].shape
@@ -289,9 +281,7 @@ def moveCenter(A_m, cano, i, target):
 
 
 def tensorSwap(A_m, legs, cano, i, p, right=True, Xhead=None, err=None, tol=1e-12):
-    # swap sites p and p+1 of MPS i. The truncation is done in canonical gauge (paper):
-    # the center is moved onto the pair first, so the singular values are the Schmidt values
-    # of the whole MPS and cutting the smallest is the optimal (global) truncation.
+    # swap sites p and p+1 of MPS i!!
     # right=True : center p -> p+1 (used when a tensor travels to the right)
     # right=False: center p+1 -> p (used when a tensor travels to the left)
     moveCenter(A_m, cano, i, p if right else p + 1)
@@ -305,11 +295,11 @@ def tensorSwap(A_m, legs, cano, i, p, right=True, Xhead=None, err=None, tol=1e-1
 
     U, S, Vt = safeSVD(theta_mat)
 
-    rank = int((S > tol * S[0]).sum())                  # B4: numerical rank computed ONCE
+    rank = int((S > tol * S[0]).sum())                  # numerical rank computed ONCE
     chi_R = rank if Xhead is None else min(Xhead, rank)
 
     if err is not None:
-        if chi_R < len(S):                              # B4: nothing discarded -> delta = 0, skip the sums
+        if chi_R < len(S):                              # nothing discarded -> delta = 0, skip the sums
             S2 = S * S
             err[0] += S2[chi_R:].sum() / S2.sum()       # err[0]: chi_hat (virtual bonds, swaps)
         if Xhead is not None and rank > Xhead:
@@ -343,7 +333,7 @@ def moveToHead(A_m, legs, cano, i, j, Xhead, err):
     p = legs[j].index(i)
     for q in range(p-1, -1, -1):                        # travels left, center travels with it
         tensorSwap(A_m, legs, cano, j, q, False, Xhead, err)
-    moveCenter(A_m, cano, j, 0)                         # merge needs the center at the head
+    moveCenter(A_m, cano, j, 0)                   # merge needs the center at the head
 
 
 def mergeMPSTensors(A_m, legs, cano, i, j):
@@ -452,9 +442,7 @@ def canonicalize(A_m, site, p):
 
 
 def compressMPS(A_m, cano, i, Xhead=None, tol=1e-12, err=None):
-    # A3: two-site sweep over the whole MPS (as CATN's compress_opt). First all sites left-canonical
-    # (center at the tail), then sweep right-to-left: at every bond an SVD in canonical gauge keeps
-    # min(Xhead, numerical rank) singular values. Lossless below Xhead; ends with the center at site 0.
+    # two-site sweep over the whole MPS (as CATN's compress_opt)!!
     n = len(A_m[i])
     if n < 2:
         return
@@ -475,7 +463,7 @@ def compressMPS(A_m, cano, i, Xhead=None, tol=1e-12, err=None):
 
 
 def cutBond(A_m, cano, i, p_i, k, p_k, dhead, err, tol=1e-12):
-    # Physical bond between site p_i of MPS i and site p_k of MPS k (both carry the same bond D).
+    # Physical bond between site p_i of MPS i and site p_k of MPS k (both carry the same bond D)!!
     # 1. centers onto the two sites (canonical gauge -> the singular values below are the true
     #    Schmidt values across this bond, so cutting the smallest is the optimal truncation)
     # 2. QR trick: never build the (l_i r_i) x (l_k r_k) matrix; its singular values are those of
@@ -486,11 +474,11 @@ def cutBond(A_m, cano, i, p_i, k, p_k, dhead, err, tol=1e-12):
     moveCenter(A_m, cano, k, p_k)
     l_i, D, r_i = A_m[i][p_i].shape
     l_k, _, r_k = A_m[k][p_k].shape
-    M_i = A_m[i][p_i].transpose(0, 2, 1).reshape(l_i * r_i, D)      # (outer legs, bond)
+    M_i = A_m[i][p_i].transpose(0, 2, 1).reshape(l_i * r_i, D)  # (outer legs, bond)
     M_k = A_m[k][p_k].transpose(0, 2, 1).reshape(l_k * r_k, D)
     Q_i, R_i = np.linalg.qr(M_i) if M_i.shape[0] > D else (None, M_i)
     Q_k, R_k = np.linalg.qr(M_k) if M_k.shape[0] > D else (None, M_k)
-    U, S, Vt = safeSVD(R_i @ R_k.T)                                  # = SVD of M_i M_k^T
+    U, S, Vt = safeSVD(R_i @ R_k.T)                       # = SVD of M_i M_k^T
     rank = int(np.sum(S > tol * S[0]))
     chi = min(dhead, rank)
     err[1] += np.sum(S[chi:] ** 2) / np.sum(S ** 2)       # err[1]: D_hat (physical bonds)
@@ -498,7 +486,7 @@ def cutBond(A_m, cano, i, p_i, k, p_k, dhead, err, tol=1e-12):
         err[3] += 1                                       # err[3]: how often D_hat was hit
     err[5] = max(err[5], chi)                             # err[5]: largest physical bond kept
     sq = np.sqrt(S[:chi])
-    new_i = U[:, :chi] * sq                                          # bond split as sqrt(S) | sqrt(S)
+    new_i = U[:, :chi] * sq                               # bond split as sqrt(S) | sqrt(S)
     new_k = Vt[:chi, :].T * sq
     if Q_i is not None:
         new_i = Q_i @ new_i
@@ -511,10 +499,6 @@ def cutBond(A_m, cano, i, p_i, k, p_k, dhead, err, tol=1e-12):
 # main MPS Calculus kernel!
 # Z will be returning in logarithmic scale!!
 def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False, stats=None, K=1):
-    # K: C1 batch cap per round (1 = serial greedy as in B4, None = whole cheapest bucket)
-    # stats: optional dict, filled with the truncation split (chi_hat vs D_hat) at the end
-    # compress=True: A3, recompress the merged MPS after every merge
-    # rng: np.random.Generator -> random tie-breaking in ContractionOrder (None = baseline order)
 
     # MPS Form! (its already in Canonical form and checked!!)
     A_m = modifyTensortoMPS(A)
@@ -584,7 +568,7 @@ def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False,
                 compressMPS(A_m, cano, i, Xhead, tol, err)
             alive.remove(j)
 
-            # B3: push the new key of every edge whose key may have changed. The key depends on ls (cost)
+            # push the new key of every edge whose key may have changed. The key depends on ls (cost)
             # and on legs (triangles). legs changed for i (inherits j's neighbours) and for every former
             # neighbour k of j (j -> i); ls changed for i and the cut k's, which are also in nbrs_j.
             if rng is None and len(alive) > 1:

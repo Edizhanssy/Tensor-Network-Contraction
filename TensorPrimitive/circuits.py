@@ -37,7 +37,7 @@ def randomCircuit(L, d, seed=0):
     """Random circuit following the paper's protocol (Supplemental Material)."""
     rng = np.random.default_rng(seed)
     n = L * L
-    circuit = [(H, [q]) for q in range(n)]              # 1. H on every qubit
+    circuit = [(H, [q]) for q in range(n)]              # H on every qubit
     order = [1, 3, 5, 7, 2, 4, 6, 8]                    # alternate horizontal / vertical
     for layer in range(d):
         pairs = czPattern(order[layer % 8], L)
@@ -50,5 +50,5 @@ def randomCircuit(L, d, seed=0):
             if not has_cz[q]:
                 g = [T, Xh, Yh][rng.integers(3)]
                 circuit.append((g, [q]))
-    circuit += [(H, [q]) for q in range(n)]             # 4. H on every qubit
+    circuit += [(H, [q]) for q in range(n)]             # H on every qubit
     return circuit

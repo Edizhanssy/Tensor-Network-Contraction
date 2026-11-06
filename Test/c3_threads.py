@@ -25,7 +25,6 @@ CONFIGS = ([("serial K=1", 1, None, 1), ("serial K=None", None, None, 1)]
 def child(family, circuit, K, threads, catn_dir):
     import numpy as np
     import catn_compare as cc
-    import main_parallel
     A, legs = cc.build(family, circuit, catn_dir)
     t0 = time.perf_counter()
     lnZ, eps = main.MPSCalculus(A, legs, DHEAD, XHEAD, K=K, threads=threads)
