@@ -1,0 +1,16 @@
+n=  100  ours tol=1e-12                  0.6 s   err 2.11e-30   ln|amp| -34.5414627053
+n=  100  ours tol=1e-14                  0.1 s   err 2.11e-30   ln|amp| -34.5414627053
+n=  100  catn reverse=T cut=1e-14        1.6 s   err 7.73e-15   ln|amp| -34.5414627053
+n=  100  catn reverse=F cut=1e-14        1.5 s   err 1.67e-14   ln|amp| -34.5414627053
+n=  100  catn reverse=T cut=1e-12        1.5 s   err 7.73e-15   ln|amp| -34.5414627053
+# Accuracy gap on the authors' circuits: which hypothesis?
+
+D_max = 50, chi_max = 500. err: ours = discarded weight, CATN = sum of discarded singular values. Δ = |ln|amp| − ln|amp| of CATN as published| (same n).
+
+| n | config | time [s] | err | ln\|amp\| | Δ vs CATN ref |
+|---|---|---|---|---|---|
+| 100 | ours tol=1e-12 | 0.6 | 2.1e-30 | -34.5414627053 | 4.3e-14 |
+| 100 | ours tol=1e-14 | 0.1 | 2.1e-30 | -34.5414627053 | 4.3e-14 |
+| 100 | catn reverse=T cut=1e-14 | 1.6 | 7.7e-15 | -34.5414627053 | 0.0e+00 |
+| 100 | catn reverse=F cut=1e-14 | 1.5 | 1.7e-14 | -34.5414627053 | 8.5e-14 |
+| 100 | catn reverse=T cut=1e-12 | 1.5 | 7.7e-15 | -34.5414627053 | 0.0e+00 |
