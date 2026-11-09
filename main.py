@@ -257,7 +257,6 @@ def tensorSwap(A_m, legs, cano, i, p, right=True, Xhead=None, err=None, tol=1e-1
     l, p2, p0, r = Theta.shape
     theta_mat = Theta.reshape(l*p2, p0*r)
     # the isfinite debug check was removed (the SVD failures were gesdd, handled by safeSVD)
-
     U, S, Vt = safeSVD(theta_mat)
 
     rank = int((S > tol * S[0]).sum())                  # numerical rank computed ONCE
