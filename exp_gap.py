@@ -28,19 +28,20 @@ OUT = "exp_gap.csv"
 FIELDS = ["n", "config", "status", "seconds", "err", "lnabs"]
 CIRCS = {100: "supremacy2d100-d10-seed1-rank3-new", 900: "supremacy2d900-d10-seed1-rank3-new",
          1600: "supremacy2d1600-d10-seed1-rank3-new"}
-CONFIGS = [("ours tol=1e-12", "ours", dict(tol=1e-12)),
-           ("ours tol=1e-14", "ours", dict(tol=1e-14)),
+CONFIGS = [("ours tol=1e-12", "ours", dict(tol=1e-12, compress=False)),
+           ("ours tol=1e-14", "ours", dict(tol=1e-14, compress=False)),
+           ("ours tol=1e-12 compress", "ours", dict(tol=1e-12, compress=True)),
            ("catn reverse=T cut=1e-14", "catn", dict(reverse=True, cutoff=1e-14)),
            ("catn reverse=F cut=1e-14", "catn", dict(reverse=False, cutoff=1e-14)),
            ("catn reverse=T cut=1e-12", "catn", dict(reverse=True, cutoff=1e-12))]
 
 
-def run_ours(A, legs, tol):
+def run_ours(A, legs, tol, compress):
     import main
     d = list(main.tensorSwap.__defaults__)          # (right, Xhead, err, tol): swaps get tol via the default
     d[-1] = tol
     main.tensorSwap.__defaults__ = tuple(d)
-    lnZ, eps = main.MPSCalculus(A, legs, DHEAD, XHEAD, tol=tol)
+    lnZ, eps = main.MPSCalculus(A, legs, DHEAD, XHEAD, tol=tol, compress=compress)
     return float(np.real(lnZ)), float(eps)
 
 
@@ -74,7 +75,7 @@ def child(n, label, catn_dir):
     A, legs = cc.build("pz", CIRCS[n], catn_dir)
     t0 = time.perf_counter()
     if code == "ours":
-        lnabs, err = run_ours(A, legs, opts["tol"])
+        lnabs, err = run_ours(A, legs, opts["tol"], opts.get("compress", False))
     else:
         lnabs, err = run_catn(A, legs, catn_dir, opts["reverse"], opts["cutoff"])
     return dict(seconds=time.perf_counter() - t0, err=err, lnabs=lnabs)

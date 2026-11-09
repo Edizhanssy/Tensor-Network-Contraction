@@ -1,7 +1,4 @@
 import numpy as np
-from Test.test_mps import testMPS
-from Test.test_mps import checkLeftCanonical
-from Test.test_mps import mpsToTensor
 import scipy.linalg
 import heapq
 
@@ -180,26 +177,35 @@ def edgeKey(A_m, legs, ls, mu, nu):
     return (bucket, -tri, mu, nu)
 
 
-def pushEdge(heap, A_m, legs, ls, a, b):
+def pushEdge(heap, A_m, legs, ls, a, b, tiebreak="id", counter=None, latest=None):
     # entries are always stored from the smaller tensor ID's side: (bucket, -tri, mu, nu) with mu < nu
+    # tiebreak="fifo": (bucket, -tri, push number, mu, nu) -> among ties the edge pushed longest ago
+    # wins (CATN's rule); latest remembers each edge's newest push number, older entries are stale
     mu, nu = (a, b) if a < b else (b, a)
-    heapq.heappush(heap, edgeKey(A_m, legs, ls, mu, nu))
+    key = edgeKey(A_m, legs, ls, mu, nu)
+    if tiebreak == "fifo":
+        counter[0] += 1
+        latest[(mu, nu)] = counter[0]
+        key = (key[0], key[1], counter[0], mu, nu)
+    heapq.heappush(heap, key)
 
 
-def isValid(entry, A_m, legs, ls):
-    _, _, mu, nu = entry                               # (bucket, -tri, mu, nu)
+def isValid(entry, A_m, legs, ls, latest=None):
+    mu, nu = entry[-2], entry[-1]                      # (bucket, -tri, mu, nu) or (bucket, -tri, n, mu, nu)
+    if len(entry) == 5 and latest.get((mu, nu)) != entry[2]:
+        return False                                   # fifo: pushed again later, this entry is stale
     if len(A_m[mu]) == 0 or len(A_m[nu]) == 0:         # an end was contracted away
         return False
     if nu not in legs[mu]:                             # no longer neighbours (before edgeKey: .index would fail)
         return False
-    return edgeKey(A_m, legs, ls, mu, nu) == entry     # bucket or triangles changed since the push?
+    return edgeKey(A_m, legs, ls, mu, nu)[:2] == entry[:2]   # bucket or triangles changed since the push?
 
 
-def popBestEdge(heap, A_m, legs, ls):
+def popBestEdge(heap, A_m, legs, ls, latest=None):
     # lazy invalidation: stale entries are not removed when keys change, they are skipped here
     while heap:
         entry = heapq.heappop(heap)
-        if isValid(entry, A_m, legs, ls):
+        if isValid(entry, A_m, legs, ls, latest):
             return entry[-2], entry[-1]                # (.., mu, nu): from the end, robust to key changes
     raise RuntimeError("heap is empty but edges are left: an update was not pushed")
 
@@ -444,7 +450,7 @@ def cutBond(A_m, cano, i, p_i, k, p_k, dhead, err, tol=1e-12):
         err[3] += 1                                       # err[3]: how often D_hat was hit
     err[5] = max(err[5], chi)                             # err[5]: largest physical bond kept
     sq = np.sqrt(S[:chi])
-    new_i = U[:, :chi] * sq                                          # bond split as sqrt(S) | sqrt(S)
+    new_i = U[:, :chi] * sq                               # bond split as sqrt(S) | sqrt(S)
     new_k = Vt[:chi, :].T * sq
     if Q_i is not None:
         new_i = Q_i @ new_i
@@ -456,19 +462,29 @@ def cutBond(A_m, cano, i, p_i, k, p_k, dhead, err, tol=1e-12):
 
 # main MPS Calculus kernel!
 # Z will be returning in logarithmic scale!!
-def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False, stats=None):
+def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False, stats=None, order=None, tiebreak="id"):
+    # tiebreak: "id" = B3 (ties -> smaller IDs), "fifo" = CATN's rule (ties -> edge pushed longest ago,
+    # the higher-degree tensor survives, all edges around the merged tensor are re-pushed)
+
+    if order is not None and rng is not None:
+        raise ValueError("ERROR: Both of them are defined")
 
     # MPS Form! (its already in Canonical form and checked!!)
     A_m = modifyTensortoMPS(A)
     cano = [len(m) - 1 for m in A_m]                    # TT-SVD is left-canonical: center at the last site
     ls = [logSize(m) for m in A_m]                      # B1: logSize cache
     heap = []                                           # B2: all edges once, then only updates
-    if rng is None:
+    counter, latest = [0], {}                           # fifo: push number, newest push number per edge
+    if rng is None and order is None:
         for mu in range(len(legs)):
             for p, nu in enumerate(legs[mu]):
                 if mu < nu:
-                    heap.append(edgeKey(A_m, legs, ls, mu, nu))   # B3 key
+                    if tiebreak == "fifo":
+                        pushEdge(heap, A_m, legs, ls, mu, nu, tiebreak, counter, latest)
+                    else:
+                        heap.append(edgeKey(A_m, legs, ls, mu, nu))
         heapq.heapify(heap)
+
     #testMPS(A, A_m)
     #checkLeftCanonical(A_m[17])
     #print(f"||A[17]|| = {np.linalg.norm(A[17]):.6f}")
@@ -477,11 +493,19 @@ def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False,
     alive = set(range(len(A_m)))
     log_scale = 0.0
     err = [0.0, 0.0, 0, 0, 0, 0]   # eps_chi, eps_D, hits_chi, hits_D, max_chi, max_D
+    step = 0
     # while size of the vertex list is greater than one!
     while len(alive) > 1:
+
+        if order is not None:
+            # taking the next couple from the order list
+            i, j = order[step]
+            step += 1
         # Choosing edges
-        if rng is None:
-            i, j = popBestEdge(heap, A_m, legs, ls)     # B2: no scan
+        elif rng is None:
+            i, j = popBestEdge(heap, A_m, legs, ls, latest)     # B2: no scan
+            if tiebreak == "fifo" and len(legs[j]) > len(legs[i]):
+                i, j = j, i                             # CATN: the tensor with more legs survives
         else:
             i, j = ContractionOrder(A_m, legs, ls, rng)  # random tie-breaking: old scan (experiments only)
         #print(i, j ,legs)
@@ -524,17 +548,20 @@ def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False,
             compressMPS(A_m, cano, i, Xhead, tol, err)
         alive.remove(j)
 
-        # B3: push the new key of every edge whose key may have changed. The key depends on ls (cost)
+        # push the new key of every edge whose key may have changed. The key depends on ls (cost)
         # and on legs (triangles). legs changed for i (inherits j's neighbours) and for every former
         # neighbour k of j (j -> i); ls changed for i and the cut k's, which are also in nbrs_j.
-        if rng is None and len(alive) > 1:
+        if rng is None and order is None and len(alive) > 1:
             pushed = set()
-            for t in [i] + nbrs_j:
+            # fifo: re-push every edge of i and of all its current neighbours (CATN), so they all go
+            # to the back of the queue; id: only the edges whose key can have changed
+            nodes = [i] + list(legs[i]) if tiebreak == "fifo" else [i] + nbrs_j
+            for t in nodes:
                 for nu in legs[t]:
                     key = (min(t, nu), max(t, nu))
                     if key not in pushed:
                         pushed.add(key)
-                        pushEdge(heap, A_m, legs, ls, t, nu)
+                        pushEdge(heap, A_m, legs, ls, t, nu, tiebreak, counter, latest)
 
 
     # exactly zero amplitude -> ln Z = -inf (exp(-inf) = 0), without a log(0) warning
