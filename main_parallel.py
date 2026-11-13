@@ -512,6 +512,7 @@ def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False,
     # to keep the alive sites!!
     alive = set(range(len(A_m)))
     log_scale = 0.0
+    Z_total = 1.0                                       # product of the scalars of finished components
     err = [0.0, 0.0, 0, 0, 0, 0]   # eps_chi, eps_D, hits_chi, hits_D, max_chi, max_D
     rounds = 0                                          # number of rounds (= steps when K=1)
     timing = stats is not None                          # per-step timing only when stats are asked for
@@ -527,8 +528,12 @@ def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False,
         moveToHead(A_m, legs, cano, i, j, Xhead, e)
         # merge two MPS tensors Ai and Aj by contracting edge (i,j) that connects them
         D_ij = A_m[i][-1].shape[1]                      # read before the merge eats that site
+        last = len(A_m[i]) == 1 and len(A_m[j]) == 1    # i and j only share this edge: last step of a component
         nbrs_j, Z, log_c = mergeMPSTensors(A_m, legs, cano, i, j)
         ls[i] += ls[j] - 2 * np.log(D_ij)
+        if last:                                        # component finished: Z is its scalar
+            A_m[i], A_m[j], legs[i], legs[j] = [], [], [], []
+            return [], Z, log_c, time.perf_counter() - t0, True
         # for loop for updating the contracting j for legs
         for k in nbrs_j:
             j_first = (i in legs[k]) and (legs[k].index(j) < legs[k].index(i))
@@ -550,10 +555,13 @@ def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False,
                 ls[k] += np.log(chi) - np.log(D_ik)
         if compress:
             compressMPS(A_m, cano, i, Xhead, tol, e)
-        return nbrs_j, Z, log_c, time.perf_counter() - t0
+        return nbrs_j, Z, log_c, time.perf_counter() - t0, False
 
-    def bookkeeping(i, j, nbrs_j):
-        alive.remove(j)
+    def bookkeeping(i, j, nbrs_j, last=False):
+        alive.discard(j)
+        if last:                                        # component finished: i is gone as well
+            alive.discard(i)
+            return
         # B3: push the new key of every edge whose key may have changed. The key depends on ls (cost)
         # and on legs (triangles). legs changed for i (inherits j's neighbours) and for every former
         # neighbour k of j (j -> i); ls changed for i and the cut k's, which are also in nbrs_j.
@@ -587,18 +595,22 @@ def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False,
                     err[0] += e[0]; err[1] += e[1]; err[2] += e[2]; err[3] += e[3]
                     err[4] = max(err[4], e[4]); err[5] = max(err[5], e[5])
                 t1 = time.perf_counter()
-                for (i, j), (nbrs_j, Z, log_c, dt) in zip(batch, res):   # bookkeeping: serial, after the round
+                for (i, j), (nbrs_j, Z, log_c, dt, last) in zip(batch, res):   # bookkeeping: serial, after the round
                     log_scale = log_c + log_scale
+                    if last:
+                        Z_total = Z_total * Z.item()
                     round_times[-1].append(dt)
-                    bookkeeping(i, j, nbrs_j)
+                    bookkeeping(i, j, nbrs_j, last)
                 serial_time += time.perf_counter() - t1
             else:
                 for i, j in batch:                      # serial: exactly the C2 order of operations
-                    nbrs_j, Z, log_c, dt = step(i, j, err)
+                    nbrs_j, Z, log_c, dt, last = step(i, j, err)
                     log_scale = log_c + log_scale
+                    if last:
+                        Z_total = Z_total * Z.item()
                     round_times[-1].append(dt)
                     t1 = time.perf_counter()
-                    bookkeeping(i, j, nbrs_j)
+                    bookkeeping(i, j, nbrs_j, last)
                     serial_time += time.perf_counter() - t1
     finally:
         if pool is not None:
@@ -610,9 +622,9 @@ def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False,
                      max_chi=err[4], max_D=err[5], rounds=rounds,
                      round_times=round_times, serial_time=serial_time)
     eps = err[0] + err[1]                               # same total as before
-    if Z.item() == 0:
+    if Z_total == 0:
         return -np.inf, eps
-    return log_scale + np.log(Z.item()), eps
+    return log_scale + np.log(Z_total), eps
 
 
 

@@ -518,6 +518,7 @@ def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False,
     # to keep the alive sites!!
     alive = set(range(len(A_m)))
     log_scale = 0.0
+    Z_total = 1.0                                       # product of the scalars of finished components
     err = [0.0, 0.0, 0, 0, 0, 0]   # eps_chi, eps_D, hits_chi, hits_D, max_chi, max_D
     # while size of the vertex list is greater than one!
     rounds = 0                                          # C1: number of rounds (= steps when K=1)
@@ -538,9 +539,18 @@ def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False,
 
             # merge two MPS tensors Ai and Aj by contracting edge (i,j) that connects them
             D_ij = A_m[i][-1].shape[1]                      # read before the merge eats that site
+            last = len(A_m[i]) == 1 and len(A_m[j]) == 1    # i and j only share this edge: last step of a component
             nbrs_j, Z, log_c = mergeMPSTensors(A_m, legs, cano, i, j)
             ls[i] += ls[j] - 2 * np.log(D_ij)
             log_scale = log_c + log_scale
+            if last:
+                # this connected component is now one scalar Z. A network can have several components
+                # (e.g. a short circuit whose CZs split the qubits into groups): multiply their scalars
+                Z_total = Z_total * Z.item()
+                A_m[i], A_m[j], legs[i], legs[j] = [], [], [], []
+                alive.discard(i)
+                alive.discard(j)
+                continue
 
             # for loop for updating the contracting j for legs
             for k in nbrs_j:
@@ -586,9 +596,9 @@ def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False,
         stats.update(eps_chi=err[0], eps_D=err[1], hits_chi=err[2], hits_D=err[3],
                      max_chi=err[4], max_D=err[5], rounds=rounds)
     eps = err[0] + err[1]                               # same total as before
-    if Z.item() == 0:
+    if Z_total == 0:
         return -np.inf, eps
-    return log_scale + np.log(Z.item()), eps
+    return log_scale + np.log(Z_total), eps
 
 
 
