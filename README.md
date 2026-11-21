@@ -34,6 +34,37 @@ are drawn from the set {T, X<sup>1/2</sup>, Y<sup>1/2</sup>}.
 
 *Figure 2: Tensor network of a generated circuit with L = 10 (10 × 10 qubits) and depth d = 8.*
 
+Table 1 lists the gate content of this circuit layer by layer and tracks how the entanglement builds up.
+
+| Layer | CZ pattern | Dir. | CZ gates | Single-qubit gates | CZ across middle cut (cum.) | Light cone of centre qubit |
+|:-----:|:----------:|:----:|---------:|-------------------:|----------------------------:|---------------------------:|
+| 1     | 1          | ↔    | 25       | 50                 | 5                           | 2 / 100                    |
+| 2     | 2          | ↔    | 25       | 50                 | 10                          | 2 / 100                    |
+| 3     | 3          | ↕    | 20       | 30                 | 10                          | 3 / 100                    |
+| 4     | 4          | ↕    | 20       | 40                 | 10                          | 4 / 100                    |
+| 5     | 5          | ↔    | 20       | 24                 | 10                          | 6 / 100                    |
+| 6     | 6          | ↔    | 20       | 40                 | 10                          | 8 / 100                    |
+| 7     | 7          | ↕    | 25       | 20                 | 10                          | 12 / 100                   |
+| 8     | 8          | ↕    | 25       | 50                 | 10                          | 16 / 100                   |
+| **Σ** |            |      | **180**  | **304**            | **10**                      |                            |
+
+*Table 1: CZ layers and gate counts of the circuit in Figure 2 (L = 10, d = 8, seed = 0). Together with the
+two H layers (200 gates), the circuit has 684 gates. Its tensor network has 884 tensors and 964 bonds.*
+
+* **Cut bound:** each CZ across a cut adds at most one ebit, so the entanglement between the left and the
+  right half is at most $S \leq \min(10, n/2) = 10$ ebits. An exact MPS across this cut therefore needs a
+  bond dimension of at most $2^{10}$.
+
+* **Light cone:** after d = 8 layers, the centre qubit influences 16 of the 100 qubits (13 % on average).
+
+* **Treewidth:** a min-degree heuristic gives an upper bound of 9, so contraction costs
+  $2^{\mathcal{O}(9)}$ [[8]](#ref8).
+
+At d = 8 the entanglement is therefore still far from its maximum of 50 ebits. This is why the n = 100 circuit
+can still be contracted exactly (see Figure 8). The entanglement keeps growing with the depth d and the
+system size n, and the exact contraction cost grows exponentially with it.
+
+
 ### Tensor Contraction
 
 A quantum circuit can be simulated by mapping it to a tensor network and contracting it.
@@ -117,7 +148,7 @@ This accumulation is done for the whole tensor network and it is given as the se
 | χ<sub>max</sub> (virtual bond)  | 500                                                                      |
 | Contraction order               | Greedy                                                                   |
 
-*Table 1: Experimental setup used.*
+*Table 2: Experimental setup used.*
 
 #### Results and Discussion
 
@@ -152,7 +183,8 @@ The reported truncation error $\varepsilon_{\mathrm{SVD}}$ is an **indicator, no
 | Authors'          |  900 |    7.7e-10 |     4.1e-7 |      **530** |     0.015 |
 | Authors'          | 1600 |     7.6e-3 |     2.4e-2 |      **3.1** |      0.27 |
 
-*Table 2: Reported truncation error vs. true error. ε is the share of the $\sigma^2$ weight discarded at each cut, summed over all cuts. The true error is the deviation of the final amplitude from the reference. $D_{\max} = 50$, $\chi_{\max} = 500$, our kernel.*
+*Table 3: Reported truncation error vs. true error. ε is the share of the $\sigma^2$ weight discarded at each cut, summed over all cuts. 
+The true error is the deviation of the final amplitude from the reference. $D_{\max} = 50$, $\chi_{\max} = 500$, our kernel.*
 
 **True / ε** ranges from 0.24 to 530. That is more than three orders of magnitude, and wrong in both directions.
 **True / √ε** stays between 0.015 and 0.27, so it is below 1 on all four circuits. This is measured, not guaranteed.
