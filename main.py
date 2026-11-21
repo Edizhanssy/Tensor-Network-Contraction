@@ -1,6 +1,8 @@
 import numpy as np
+from Test.test_mps import testMPS
+from Test.test_mps import checkLeftCanonical
+from Test.test_mps import mpsToTensor
 import scipy.linalg
-import heapq
 
 
 def safeSVD(mat):
@@ -154,75 +156,23 @@ def logSize(mps):
     return logsize
 
 
-def edgeCost(A_m, legs, ls, mu, p):
-    #  cost of contracting edge (mu, legs[mu][p]). ONE place computes it, both when an entry is
-    # pushed and when it is checked, so a still-valid entry compares exactly equal (same floats).
-    nu = legs[mu][p]
-    return ls[mu] + ls[nu] - 2 * np.log(A_m[mu][p].shape[1])
-
-
-def triangles(legs, mu, nu):
-    # number of common neighbours of mu and nu (= triangles on edge mu-nu).
-    # No self-loops (mu not in legs[mu], nu not in legs[nu]), so the two ends never count themselves.
-    return len(set(legs[mu]) & set(legs[nu]))
-
-
-def edgeKey(A_m, legs, ls, mu, nu):
-    # heap key (mu < nu): cost rounded to a log2 bucket, inside a bucket the edge with the
-    # most triangles first (min-heap -> -tri), then the smaller IDs (deterministic)!!
-    p = legs[mu].index(nu)
-    cost = edgeCost(A_m, legs, ls, mu, p)
-    bucket = int(round(cost / np.log(2)))
-    tri = triangles(legs, mu, nu)
-    return (bucket, -tri, mu, nu)
-
-
-def pushEdge(heap, A_m, legs, ls, a, b, tiebreak="id", counter=None, latest=None):
-    # entries are always stored from the smaller tensor ID's side: (bucket, -tri, mu, nu) with mu < nu
-    # tiebreak="fifo": (bucket, -tri, push number, mu, nu) -> among ties the edge pushed longest ago
-    # wins (CATN's rule); latest remembers each edge's newest push number, older entries are stale
-    mu, nu = (a, b) if a < b else (b, a)
-    key = edgeKey(A_m, legs, ls, mu, nu)
-    if tiebreak == "fifo":
-        counter[0] += 1
-        latest[(mu, nu)] = counter[0]
-        key = (key[0], key[1], counter[0], mu, nu)
-    heapq.heappush(heap, key)
-
-
-def isValid(entry, A_m, legs, ls, latest=None):
-    mu, nu = entry[-2], entry[-1]                      # (bucket, -tri, mu, nu) or (bucket, -tri, n, mu, nu)
-    if len(entry) == 5 and latest.get((mu, nu)) != entry[2]:
-        return False                                   # fifo: pushed again later, this entry is stale
-    if len(A_m[mu]) == 0 or len(A_m[nu]) == 0:         # an end was contracted away
-        return False
-    if nu not in legs[mu]:                             # no longer neighbours (before edgeKey: .index would fail)
-        return False
-    return edgeKey(A_m, legs, ls, mu, nu)[:2] == entry[:2]   # bucket or triangles changed since the push?
-
-
-def popBestEdge(heap, A_m, legs, ls, latest=None):
-    # lazy invalidation: stale entries are not removed when keys change, they are skipped here
-    while heap:
-        entry = heapq.heappop(heap)
-        if isValid(entry, A_m, legs, ls, latest):
-            return entry[-2], entry[-1]                # (.., mu, nu): from the end, robust to key changes
-    raise RuntimeError("heap is empty but edges are left: an update was not pushed")
-
-
-def ContractionOrder(A_m, legs, ls, rng=None, tie_tol=1e-9):
+def ContractionOrder(A_m, legs, rng=None, tie_tol=1e-9):
+    # rng=None: deterministic greedy, the FIRST cheapest edge wins (baseline behaviour)
+    # rng given: collect ALL edges whose cost equals the minimum (up to tie_tol, since the
+    #            costs are sums of logs and log2+log2 == log4 may fail in floating point)
+    #            and pick one of them at random -> a different but equally greedy order
     best_cost = np.inf
     best_edges = []
     for mu in range(len(legs)):
         for p, nu in enumerate(legs[mu]):
             if mu < nu:
                 D_mu_nu = A_m[mu][p].shape[1]
-                cost = ls[mu] + ls[nu] - 2 * np.log(D_mu_nu)
+                cost = logSize(A_m[mu]) + logSize(A_m[nu]) - 2 * np.log(D_mu_nu)
                 if rng is None:
                     if cost < best_cost:
                         best_cost = cost
                         best_edges = [(mu, nu)]
-                elif cost < best_cost - tie_tol:          # strictly cheaper compared to baseline: new candidate list
+                elif cost < best_cost - tie_tol:          # strictly cheaper: new candidate list
                     best_cost = cost
                     best_edges = [(mu, nu)]
                 elif abs(cost - best_cost) <= tie_tol and (mu, nu) not in best_edges:   # a tie
@@ -232,83 +182,58 @@ def ContractionOrder(A_m, legs, ls, rng=None, tie_tol=1e-9):
         return best_edges[0]
     return best_edges[rng.integers(len(best_edges))]
 
-def moveCenter(A_m, cano, i, target):
-    # move the orthogonality center of MPS i from cano[i] to site `target` with QR steps
-    # (left of the center: left-canonical, right of it: right-canonical)
-    c = cano[i]
-    while c < target:                                   # one step right: Q stays, R goes right
-        l, ph, r = A_m[i][c].shape
-        Q, R = np.linalg.qr(A_m[i][c].reshape(l * ph, r))
-        A_m[i][c] = Q.reshape(l, ph, -1)
-        A_m[i][c + 1] = np.einsum('kr, rph -> kph', R, A_m[i][c + 1])
-        c += 1
-    while c > target:                                   # one step left: Q^T stays, R^T goes left
-        l, ph, r = A_m[i][c].shape
-        Q, R = np.linalg.qr(A_m[i][c].reshape(l, ph * r).T)
-        A_m[i][c] = Q.T.reshape(-1, ph, r)
-        A_m[i][c - 1] = np.einsum('lpr, rk -> lpk', A_m[i][c - 1], R.T)
-        c -= 1
-    cano[i] = c
-
-
-def tensorSwap(A_m, legs, cano, i, p, right=True, Xhead=None, err=None, tol=1e-12):
-    # swap sites p and p+1 of MPS i
-    # right=True : center p -> p+1 (used when a tensor travels to the right)
-    # right=False: center p+1 -> p (used when a tensor travels to the left)
-    moveCenter(A_m, cano, i, p if right else p + 1)
+def tensorSwap(A_m, legs, i, p, Xhead = None, err=None, tol=1e-12):
 
     M1 = A_m[i][p]
     M2 = A_m[i][p+1]
     Theta = np.einsum('lap, pbr->lbar', M1, M2)
     l, p2, p0, r = Theta.shape
     theta_mat = Theta.reshape(l*p2, p0*r)
-    # the isfinite debug check was removed (the SVD failures were gesdd, handled by safeSVD)
+    isFinite = np.isfinite(theta_mat)
+
+    if not isFinite.all():
+        good = np.abs(theta_mat[isFinite])
+        raise FloatingPointError(
+            f"tensorSwap: theta_mat not finite | shape={theta_mat.shape} | "
+            f"n_nonfinite={np.sum(~isFinite)} (nan={np.sum(np.isnan(theta_mat))}, "
+            f"inf={np.sum(np.isinf(theta_mat))}) | "
+            f"max|finite|={good.max() if good.size else 'none'} | "
+            f"|M1|max={np.abs(M1).max()}, |M2|max={np.abs(M2).max()}")
+
     U, S, Vt = safeSVD(theta_mat)
 
-    rank = int((S > tol * S[0]).sum())                  # numerical rank computed ONCE
-    chi_R = rank if Xhead is None else min(Xhead, rank)
+    if Xhead is None:
+        chi_R = np.sum(S > tol*S[0])
+    else:
+        chi_R = min(Xhead, np.sum(S > tol*S[0]))
 
+    delta = np.sum(S[chi_R:]**2)/np.sum(S**2)
     if err is not None:
-        if chi_R < len(S):                              # nothing discarded -> delta = 0, skip the sums
-            S2 = S * S
-            err[0] += S2[chi_R:].sum() / S2.sum()       # err[0]: chi_hat (virtual bonds, swaps)
-        if Xhead is not None and rank > Xhead:
-            err[2] += 1                                 # err[2]: how often chi_hat was hit
-        err[4] = max(err[4], chi_R)                     # err[4]: largest virtual bond kept
+        err[0] += delta
     U = U[:, :chi_R]
     S = S[:chi_R]
     Vt = Vt[:chi_R, :]
     legs[i][p], legs[i][p + 1] = legs[i][p + 1], legs[i][p]
 
-    if right:                                           # S goes right: p is a left isometry
-        A_m[i][p] = U.reshape(l, p2, chi_R)
-        A_m[i][p+1] = (S[:, None] * Vt).reshape(chi_R, p0, r)
-        cano[i] = p + 1
-    else:                                               # S goes left: p+1 is a right isometry
-        A_m[i][p] = (U * S).reshape(l, p2, chi_R)
-        A_m[i][p+1] = Vt.reshape(chi_R, p0, r)
-        cano[i] = p
+    A_m[i][p] = U.reshape(l, p2, chi_R)
+    A_m[i][p+1] = (np.diag(S) @ Vt).reshape(chi_R, p0, r)
 
 
-def moveToTail(A_m, legs, cano, i, j, Xhead, err):
+def moveToTail(A_m, legs, i, j, Xhead, err):
 
     p = legs[i].index(j)
     d = len(legs[i])
-    for q in range(p, d-1):                             # travels right, center travels with it
-        tensorSwap(A_m, legs, cano, i, q, True, Xhead, err)
-    moveCenter(A_m, cano, i, d - 1)                     # merge needs the center at the tail
+    for q in range(p, d-1):
+        tensorSwap(A_m, legs, i, q, Xhead, err)
 
-def moveToHead(A_m, legs, cano, i, j, Xhead, err):
+def moveToHead(A_m, legs, i, j, Xhead, err):
 
     p = legs[j].index(i)
-    for q in range(p-1, -1, -1):                        # travels left, center travels with it
-        tensorSwap(A_m, legs, cano, j, q, False, Xhead, err)
-    moveCenter(A_m, cano, j, 0)                         # merge needs the center at the head
+    for q in range(p-1, -1, -1):
+        tensorSwap(A_m, legs, j, q, Xhead, err)
 
 
-def mergeMPSTensors(A_m, legs, cano, i, j):
-    # precondition: center of i at its tail, center of j at its head
-    n_i = len(A_m[i])
+def mergeMPSTensors(A_m, legs, i, j):
 
     M2 = A_m[i][-1]
     N1 = A_m[j][0]
@@ -327,7 +252,6 @@ def mergeMPSTensors(A_m, legs, cano, i, j):
         N2p = np.einsum('ab, bpr->apr', X, N2)
         # merging
         A_m[i] = A_m[i][:-1] + [N2p] + A_m[j][2:]
-        cano[i] = n_i - 1                               # X absorbed into N2: that site is the center
         # E <- E \ {(i,j)}: already done inside mergeMPSTensors
         # (legs[i] drops j via [:-1], legs[j] is cleared)
         nbrs_j = legs[j][1:]
@@ -340,7 +264,6 @@ def mergeMPSTensors(A_m, legs, cano, i, j):
         M1p = np.einsum('lpa, ab->lpb', M1, X)
         # merging
         A_m[i] = A_m[i][:-2] + [M1p] + A_m[j][2:]
-        cano[i] = n_i - 2                               # X absorbed into M1: the new tail is the center
         # E <- E \ {(i,j)}: already done inside mergeMPSTensors
         # (legs[i] drops j via [:-1], legs[j] is cleared)
         nbrs_j = legs[j][1:]
@@ -355,20 +278,16 @@ def mergeMPSTensors(A_m, legs, cano, i, j):
 
     return nbrs_j, Z, np.log(c)
 
-def moveAdjacent(A_m, legs, cano, i, k, Xhead=None, err=None):
+def moveAdjacent(A_m, legs, i, k, Xhead=None, err=None):
 
     p1 = legs[i].index(k)
     p2 = legs[i].index(k, p1+1)
     for q in range(p1, p2-1):
-        tensorSwap(A_m, legs, cano, i, q, True, Xhead, err)
+        tensorSwap(A_m, legs, i, q, Xhead, err)
 
     return legs[i].index(k)
 
-def mergeAdjacent(A_m, cano, site, p):
-    # two left (or two right) isometries multiply to a left (right) isometry, so the
-    # canonical form survives; only the center index shifts when it sits at or after p+1
-    if cano[site] > p:
-        cano[site] -= 1
+def mergeAdjacent(A_m, site, p):
 
     T1 = A_m[site][p]
     T2 = A_m[site][p+1]
@@ -411,80 +330,13 @@ def canonicalize(A_m, site, p):
         A_m[site][j - 1] = np.einsum('lpr, rk -> lpk', A_m[site][j - 1], R.T)
 
 
-def compressMPS(A_m, cano, i, Xhead=None, tol=1e-12, err=None):
-    # two-site sweep over the whole MPS.
-    n = len(A_m[i])
-    if n < 2:
-        return
-    moveCenter(A_m, cano, i, n - 1)
-    for c in range(n - 1, 0, -1):
-        l, ph, r = A_m[i][c].shape
-        U, S, Vt = safeSVD(A_m[i][c].reshape(l, ph * r))            # center site, split off its left bond
-        chi = int(np.sum(S > tol * S[0]))
-        if Xhead is not None:
-            chi = min(chi, Xhead)
-        if err is not None:
-            err[0] += np.sum(S[chi:] ** 2) / np.sum(S ** 2)
-            if Xhead is not None and np.sum(S > tol * S[0]) > Xhead:
-                err[2] += 1
-        A_m[i][c] = Vt[:chi, :].reshape(chi, ph, r)                  # right isometry
-        A_m[i][c - 1] = np.einsum('lpa, ab -> lpb', A_m[i][c - 1], U[:, :chi] * S[:chi])
-    cano[i] = 0
-
-
-def cutBond(A_m, cano, i, p_i, k, p_k, dhead, err, tol=1e-12):
-    # Physical bond between site p_i of MPS i and site p_k of MPS k (both carry the same bond D)
-    moveCenter(A_m, cano, i, p_i)
-    moveCenter(A_m, cano, k, p_k)
-    l_i, D, r_i = A_m[i][p_i].shape
-    l_k, _, r_k = A_m[k][p_k].shape
-    M_i = A_m[i][p_i].transpose(0, 2, 1).reshape(l_i * r_i, D)      # (outer legs, bond)
-    M_k = A_m[k][p_k].transpose(0, 2, 1).reshape(l_k * r_k, D)
-    Q_i, R_i = np.linalg.qr(M_i) if M_i.shape[0] > D else (None, M_i)
-    Q_k, R_k = np.linalg.qr(M_k) if M_k.shape[0] > D else (None, M_k)
-    U, S, Vt = safeSVD(R_i @ R_k.T)                                  # SVD of M_i M_k^T
-    rank = int(np.sum(S > tol * S[0]))
-    chi = min(dhead, rank)
-    err[1] += np.sum(S[chi:] ** 2) / np.sum(S ** 2)       # err[1]: D_hat (physical bonds)
-    if rank > dhead:
-        err[3] += 1                                       # err[3]: how often D_hat was hit
-    err[5] = max(err[5], chi)                             # err[5]: largest physical bond kept
-    sq = np.sqrt(S[:chi])
-    new_i = U[:, :chi] * sq                               # bond split as sqrt(S) | sqrt(S)
-    new_k = Vt[:chi, :].T * sq
-    if Q_i is not None:
-        new_i = Q_i @ new_i
-    if Q_k is not None:
-        new_k = Q_k @ new_k
-    A_m[i][p_i] = new_i.reshape(l_i, r_i, chi).transpose(0, 2, 1)
-    A_m[k][p_k] = new_k.reshape(l_k, r_k, chi).transpose(0, 2, 1)
-    # centers stay at p_i and p_k: left of them left-canonical, right of them right-canonical
-
 # main MPS Calculus kernel!
 # Z will be returning in logarithmic scale!!
-def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False, stats=None, order=None, tiebreak="id", trace=None):
-    # tiebreak: "id" = B3 (ties -> smaller IDs), "fifo" = CATN's rule (ties -> edge pushed longest ago,
-    # the higher-degree tensor survives, all edges around the merged tensor are re-pushed)
-
-    if order is not None and rng is not None:
-        raise ValueError("ERROR: Both of them are defined")
+def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None):
+    # rng: np.random.Generator -> random tie-breaking in ContractionOrder (None = baseline order)
 
     # MPS Form! (its already in Canonical form and checked!!)
     A_m = modifyTensortoMPS(A)
-    cano = [len(m) - 1 for m in A_m]                    # TT-SVD is left-canonical: center at the last site
-    ls = [logSize(m) for m in A_m]                      # B1: logSize cache
-    heap = []                                           # B2: all edges once, then only updates
-    counter, latest = [0], {}                           # fifo: push number, newest push number per edge
-    if rng is None and order is None:
-        for mu in range(len(legs)):
-            for p, nu in enumerate(legs[mu]):
-                if mu < nu:
-                    if tiebreak == "fifo":
-                        pushEdge(heap, A_m, legs, ls, mu, nu, tiebreak, counter, latest)
-                    else:
-                        heap.append(edgeKey(A_m, legs, ls, mu, nu))
-        heapq.heapify(heap)
-
     #testMPS(A, A_m)
     #checkLeftCanonical(A_m[17])
     #print(f"||A[17]|| = {np.linalg.norm(A[17]):.6f}")
@@ -492,47 +344,22 @@ def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False,
     # to keep the alive sites!!
     alive = set(range(len(A_m)))
     log_scale = 0.0
-    Z_total = 1.0                                       # product of the scalars of finished components
-    err = [0.0, 0.0, 0, 0, 0, 0]   # eps_chi, eps_D, hits_chi, hits_D, max_chi, max_D
-    step = 0
+    err = [0.0]
     # while size of the vertex list is greater than one!
     while len(alive) > 1:
-
-        if order is not None:
-            # taking the next couple from the order list
-            i, j = order[step]
-            step += 1
         # Choosing edges
-        elif rng is None:
-            i, j = popBestEdge(heap, A_m, legs, ls, latest)     # B2: no scan
-            if tiebreak == "fifo" and len(legs[j]) > len(legs[i]):
-                i, j = j, i                             # CATN: the tensor with more legs survives
-        else:
-            i, j = ContractionOrder(A_m, legs, ls, rng)  # random tie-breaking: old scan (experiments only)
+        i, j = ContractionOrder(A_m, legs, rng)
         #print(i, j ,legs)
 
         # move the corresponding tensor on (i,j) on A(i) to the TAIL &
-        moveToTail(A_m, legs, cano, i, j, Xhead, err)
+        moveToTail(A_m, legs, i, j, Xhead, err)
 
         # move the corresponding tensor on (i,j) on A(j) to the HEAD
-        moveToHead(A_m, legs, cano, i, j, Xhead, err)
+        moveToHead(A_m, legs, i, j, Xhead, err)
 
         # merge two MPS tensors Ai and Aj by contracting edge (i,j) that connects them
-        D_ij = A_m[i][-1].shape[1]                      # read before the merge eats that site
-        last = len(A_m[i]) == 1 and len(A_m[j]) == 1    # i and j only share this edge: last step of a component
-        nbrs_j, Z, log_c = mergeMPSTensors(A_m, legs, cano, i, j)
-        ls[i] += ls[j] - 2 * np.log(D_ij)
+        nbrs_j, Z, log_c = mergeMPSTensors(A_m, legs, i, j)
         log_scale = log_c + log_scale
-        if last:
-            Z_total = Z_total * Z.item()
-            if trace is not None:
-                mps_size = sum(t.size for t in A_m[i])
-                max_bond = max(t.shape[2] for t in A_m[i])
-                trace.append((i, j, ls[i], mps_size, max_bond))
-            A_m[i], A_m[j], legs[i], legs[j] = [], [], [], []
-            alive.discard(i)
-            alive.discard(j)
-            continue
 
         # for loop for updating the contracting j for legs
         for k in nbrs_j:
@@ -541,54 +368,49 @@ def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False,
             legs[k][legs[k].index(j)] = i
 
             if legs[i].count(k) > 1:
-                p_i = moveAdjacent(A_m, legs, cano, i, k, Xhead, err)
-                p_k = moveAdjacent(A_m, legs, cano, k, i, Xhead, err)
+                p_i = moveAdjacent(A_m, legs, i, k, Xhead, err)
+                p_k = moveAdjacent(A_m, legs, k, i, Xhead, err)
                 if j_first:
-                    tensorSwap(A_m, legs, cano, k, p_k, True, Xhead, err)
-                mergeAdjacent(A_m, cano, i, p_i)
-                mergeAdjacent(A_m, cano, k, p_k)
+                    tensorSwap(A_m, legs, k, p_k, Xhead, err)
+                mergeAdjacent(A_m, i, p_i)
+                mergeAdjacent(A_m, k, p_k)
                 del legs[i][p_i+1]
                 del legs[k][p_k+1]
 
-                D_ik = A_m[i][p_i].shape[1]
-                cutBond(A_m, cano, i, p_i, k, p_k, dhead, err, tol)   # always, lossless below D_hat
-                chi = A_m[i][p_i].shape[1]
-                ls[i] += np.log(chi) - np.log(D_ik)
-                ls[k] += np.log(chi) - np.log(D_ik)
+                if A_m[k][p_k].shape[1] > dhead:
+                    canonicalize(A_m, i, p_i)
+                    canonicalize(A_m, k, p_k)
 
-        if trace is not None:
-            mps_size = sum(t.size for t in A_m[i])
-            max_bond = max(t.shape[2] for t in A_m[i])
-            trace.append((i, j, ls[i], mps_size, max_bond))
+                    T_i = A_m[i][p_i]
+                    T_k = A_m[k][p_k]
 
-        if compress:
-            compressMPS(A_m, cano, i, Xhead, tol, err)
+                    l_i, D, r_i = T_i.shape
+                    l_k, D, r_k = T_k.shape
+
+                    Tp = np.einsum('ldr, mdn->lrmn', T_i, T_k)
+                    Tp_mat = Tp.reshape(l_i*r_i, l_k*r_k)
+                    U, S, Vt = safeSVD(Tp_mat)
+                    chi_R = min(dhead, np.sum(S > tol*S[0]))
+                    delta = np.sum(S[chi_R:] ** 2) / np.sum(S ** 2)
+                    #if err is not None:
+                    err[0] += delta
+                    U = U[:, :chi_R]
+                    Vt = Vt[:chi_R, :]
+                    S = S[:chi_R]
+                    T_i_new = U.reshape(l_i, r_i, chi_R).transpose(0, 2, 1)
+                    T_k_new = Vt.reshape(chi_R, l_k, r_k).transpose(1, 0, 2)
+                    sqrtS = np.sqrt(S)
+                    A_m[i][p_i] = np.einsum('lar, a->lar', T_i_new, sqrtS)
+                    A_m[k][p_k] = np.einsum('mak, a->mak', T_k_new, sqrtS)
+                    assert A_m[i][p_i].shape[1] == A_m[k][p_k].shape[1]
+
         alive.remove(j)
-
-        # push the new key of every edge whose key may have changed. The key depends on ls (cost)
-        # and on legs (triangles). legs changed for i (inherits j's neighbours) and for every former
-        # neighbour k of j (j -> i); ls changed for i and the cut k's, which are also in nbrs_j.
-        if rng is None and order is None and len(alive) > 1:
-            pushed = set()
-            # fifo: re-push every edge of i and of all its current neighbours (CATN), so they all go
-            # to the back of the queue; id: only the edges whose key can have changed
-            nodes = [i] + list(legs[i]) if tiebreak == "fifo" else [i] + nbrs_j
-            for t in nodes:
-                for nu in legs[t]:
-                    key = (min(t, nu), max(t, nu))
-                    if key not in pushed:
-                        pushed.add(key)
-                        pushEdge(heap, A_m, legs, ls, t, nu, tiebreak, counter, latest)
 
 
     # exactly zero amplitude -> ln Z = -inf (exp(-inf) = 0), without a log(0) warning
-    if stats is not None:
-        stats.update(eps_chi=err[0], eps_D=err[1], hits_chi=err[2], hits_D=err[3],
-                     max_chi=err[4], max_D=err[5])
-    eps = err[0] + err[1]                               # same total as before
-    if Z_total == 0:
-        return -np.inf, eps
-    return log_scale + np.log(Z_total), eps
+    if Z.item() == 0:
+        return -np.inf, err[0]
+    return log_scale + np.log(Z.item()), err[0]
 
 
 
