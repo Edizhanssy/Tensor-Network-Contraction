@@ -9,7 +9,7 @@ import argparse, csv, json, os, subprocess, sys, time
 import numpy as np
 
 DHEAD, XHEAD = 50, 500
-REPEATS = 3
+REPEATS = 1
 TIME_LIMIT = 1800
 CSV_FILE = "time_vs_catn.csv"
 REPORT_FILE = "time_vs_catn_report.md"

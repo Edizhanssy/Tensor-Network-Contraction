@@ -1,0 +1,25 @@
+ours n=  100 D_max=  50: eps= 2.83e-30  ln|amp|=    -35.0669102715  max_D=   4 max_chi=   8      0.1 s  exact
+     -> exact from D_max=50; larger D_max cannot change the result, skipping them
+ours n=  400 D_max=  50: eps= 4.89e-29  ln|amp|=   -138.6701915402  max_D=  32 max_chi=  32      0.3 s  exact
+     -> exact from D_max=50; larger D_max cannot change the result, skipping them
+ours n=  900 D_max=  50: eps= 3.05e-07  ln|amp|=   -312.4709792642  max_D=  50 max_chi= 192      0.8 s  hits_D=3 hits_chi=0
+ours n=  900 D_max=  64: eps= 9.60e-09  ln|amp|=   -312.4708773056  max_D=  64 max_chi= 192      0.8 s  hits_D=1 hits_chi=0
+ours n=  900 D_max= 100: eps= 2.79e-28  ln|amp|=   -312.4708664040  max_D=  96 max_chi= 192      0.9 s  exact
+     -> exact from D_max=100; larger D_max cannot change the result, skipping them
+ours n= 1600 D_max=  50: eps= 6.27e-02  ln|amp|=   -555.6680977353  max_D=  50 max_chi= 500      4.5 s  hits_D=10 hits_chi=1
+ours n= 1600 D_max=  64: eps= 2.75e-02  ln|amp|=   -555.6014912071  max_D=  64 max_chi= 500      5.6 s  hits_D=7 hits_chi=1
+ours n= 1600 D_max= 100: eps= 3.92e-03  ln|amp|=   -555.6432369979  max_D= 100 max_chi= 500      7.5 s  hits_D=6 hits_chi=1
+ours n= 1600 D_max= 128: eps= 7.82e-09  ln|amp|=   -555.6531854765  max_D= 128 max_chi= 500     10.0 s  hits_D=0 hits_chi=1
+ours n= 1600 D_max= 200: eps= 7.82e-09  ln|amp|=   -555.6531854765  max_D= 128 max_chi= 500     10.1 s  hits_D=0 hits_chi=1
+pz   n=  100 D_max=  50: eps= 2.11e-30  ln|amp|=    -34.5414627053  max_D=   4 max_chi=   8      0.1 s  exact
+     -> exact from D_max=50; larger D_max cannot change the result, skipping them
+pz   n=  400 D_max=  50: eps= 6.66e-29  ln|amp|=   -140.1386172090  max_D=  16 max_chi=  32      0.3 s  exact
+     -> exact from D_max=50; larger D_max cannot change the result, skipping them
+pz   n=  900 D_max=  50: eps= 7.66e-10  ln|amp|=   -311.5506360098  max_D=  50 max_chi= 100      0.9 s  hits_D=1 hits_chi=0
+pz   n=  900 D_max=  64: eps= 1.96e-28  ln|amp|=   -311.5506356005  max_D=  64 max_chi= 128      0.8 s  exact
+     -> exact from D_max=64; larger D_max cannot change the result, skipping them
+pz   n= 1600 D_max=  50: eps= 7.63e-03  ln|amp|=   -553.5571285231  max_D=  50 max_chi= 256      3.5 s  hits_D=14 hits_chi=0
+pz   n= 1600 D_max=  64: eps= 2.09e-03  ln|amp|=   -553.5355285394  max_D=  64 max_chi= 256      4.3 s  hits_D=6 hits_chi=0
+pz   n= 1600 D_max= 100: eps= 1.26e-04  ln|amp|=   -553.5341020387  max_D= 100 max_chi= 256      4.9 s  hits_D=6 hits_chi=0
+pz   n= 1600 D_max= 128: eps= 1.52e-05  ln|amp|=   -553.5335574040  max_D= 128 max_chi= 256      5.2 s  hits_D=1 hits_chi=0
+pz   n= 1600 D_max= 200: eps= 1.84e-08  ln|amp|=   -553.5334501758  max_D= 200 max_chi= 256      5.9 s  hits_D=1 hits_chi=0

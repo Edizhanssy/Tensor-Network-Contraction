@@ -1,0 +1,40 @@
+
+=== L=3 (n=9) d=6  D_hat=50 chi_hat=500 | state vector needs ~0.0 GB
+MPS : amp = -2.2097086912e-02-2.2097086912e-02j   eps_SVD = 0.00e+00   (0.0 s)
+SV  : amp = -2.2097086912e-02-2.2097086912e-02j   P = |amp|^2 = 9.766e-04 (uniform 1/2^n = 1.953e-03)   (0.0 s)
+error: relative |amp_MPS - amp_SV| / |amp_SV| = 3.38e-15   |Delta ln|amp|| = 3.11e-15
+
+=== L=3 (n=9) d=8  D_hat=50 chi_hat=500 | state vector needs ~0.0 GB
+MPS : amp = -1.1048543456e-02+1.1048543456e-02j   eps_SVD = 1.56e-32   (0.0 s)
+SV  : amp = -1.1048543456e-02+1.1048543456e-02j   P = |amp|^2 = 2.441e-04 (uniform 1/2^n = 1.953e-03)   (0.0 s)
+error: relative |amp_MPS - amp_SV| / |amp_SV| = 3.43e-15   |Delta ln|amp|| = 3.55e-15
+
+=== L=4 (n=16) d=8  D_hat=50 chi_hat=500 | state vector needs ~0.0 GB
+MPS : amp = 1.9827442245e-03+2.4883760145e-03j   eps_SVD = 9.53e-32   (0.0 s)
+SV  : amp = 1.9827442245e-03+2.4883760145e-03j   P = |amp|^2 = 1.012e-05 (uniform 1/2^n = 1.526e-05)   (0.0 s)
+error: relative |amp_MPS - amp_SV| / |amp_SV| = 4.79e-15   |Delta ln|amp|| = 3.55e-15
+
+=== L=4 (n=16) d=12  D_hat=50 chi_hat=500 | state vector needs ~0.0 GB
+MPS : amp = -1.7151187172e-03-6.3742985925e-04j   eps_SVD = 1.22e-30   (0.0 s)
+SV  : amp = -1.7151187172e-03-6.3742985925e-04j   P = |amp|^2 = 3.348e-06 (uniform 1/2^n = 1.526e-05)   (0.0 s)
+error: relative |amp_MPS - amp_SV| / |amp_SV| = 9.20e-15   |Delta ln|amp|| = 6.22e-15
+
+=== L=4 (n=16) d=16  D_hat=50 chi_hat=500 | state vector needs ~0.0 GB
+MPS : amp = 3.4977790432e-03-7.3384647199e-04j   eps_SVD = 2.20e-29   (0.0 s)
+SV  : amp = 3.4977790432e-03-7.3384647199e-04j   P = |amp|^2 = 1.277e-05 (uniform 1/2^n = 1.526e-05)   (0.0 s)
+error: relative |amp_MPS - amp_SV| / |amp_SV| = 6.81e-15   |Delta ln|amp|| = 6.22e-15
+
+=== L=5 (n=25) d=8  D_hat=50 chi_hat=500 | state vector needs ~1.6 GB
+MPS : amp = 2.2743658230e-04+5.4784237368e-05j   eps_SVD = 4.77e-32   (0.0 s)
+SV  : amp = 2.2743658230e-04+5.4784237368e-05j   P = |amp|^2 = 5.473e-08 (uniform 1/2^n = 2.980e-08)   (119.0 s)
+error: relative |amp_MPS - amp_SV| / |amp_SV| = 4.09e-15   |Delta ln|amp|| = 0.00e+00
+
+=== L=5 (n=25) d=12  D_hat=50 chi_hat=500 | state vector needs ~1.6 GB
+MPS : amp = -9.0861690303e-05-1.0281204306e-04j   eps_SVD = 6.01e-30   (0.0 s)
+SV  : amp = -9.0861690303e-05-1.0281204306e-04j   P = |amp|^2 = 1.883e-08 (uniform 1/2^n = 2.980e-08)   (154.9 s)
+error: relative |amp_MPS - amp_SV| / |amp_SV| = 2.79e-15   |Delta ln|amp|| = 1.78e-15
+
+=== L=5 (n=25) d=16  D_hat=50 chi_hat=500 | state vector needs ~1.6 GB
+MPS : amp = 6.7572577262e-05+1.8704102125e-04j   eps_SVD = 3.61e-29   (0.0 s)
+SV  : amp = 6.7572577262e-05+1.8704102125e-04j   P = |amp|^2 = 3.955e-08 (uniform 1/2^n = 2.980e-08)   (186.0 s)
+error: relative |amp_MPS - amp_SV| / |amp_SV| = 4.07e-14   |Delta ln|amp|| = 3.91e-14

@@ -1,0 +1,16 @@
+# Wall-clock time: our kernel (B4) vs. CATN
+
+D̂ = 50, χ̂ = 500. Minimum over 1 runs, each in a fresh process, no profiler/tracemalloc. Circuit loading not timed; CATN's network setup is included.
+
+| circuits | qubits | ours [s] | CATN [s] | CATN / ours | Δ ln\|amp\| |
+|---|---|---|---|---|---|
+| ours (d8) | 100 | 0.24 | 1.55 | 6.6× | 7.1e-15 |
+| ours (d8) | 400 | 0.39 | 14.19 | 36.6× | 1.1e-13 |
+| ours (d8) | 900 | 0.92 | 89.62 | 97.2× | 2.2e-03 |
+| ours (d8) | 1600 | 4.93 | 492.95 | 100.0× | 2.0e-02 |
+| authors (d10) | 100 | 0.22 | 1.81 | 8.2× | 4.3e-14 |
+| authors (d10) | 400 | 0.36 | 20.46 | 56.5× | 2.6e-13 |
+| authors (d10) | 900 | 0.99 | 130.97 | 131.9× | 4.1e-07 |
+| authors (d10) | 1600 | 4.14 | 601.41 | 145.2× | 1.9e-02 |
+
+Δ ln|amp| is only meaningful for n ≤ 400 on our circuits (L30/L40: double-precision cancellation).
