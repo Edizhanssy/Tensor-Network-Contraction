@@ -6,13 +6,13 @@
 
 ## Tensor Network Contraction
 
-### Approximate tensor network contraction for random quantum circuits
+### Approximate algorithm for random quantum circuits via Contraction
 
 This repository [[3]](#ref3) contains an implementation of the approximate tensor network contraction
 algorithm for random quantum circuits, based on the paper *Contracting Arbitrary Tensor Networks: General
 Approximate Algorithm and Applications in Graphical Models and Quantum Circuit Simulations* [[1]](#ref1).
 
-### Circuit generation
+### Circuit Generation
 
 The circuits generated in this code follow Google's quantum supremacy experiments [[5]](#ref5).
 Each circuit has the structure: Hadamard (H) layer → CZ layers → Hadamard (H) layer.
@@ -22,7 +22,7 @@ The CZ gates are applied in the eight layout patterns shown in Figure 1.
   <img src="figure/img_1.png" alt="The 8 CZ-patterns layout" width="700">
 </p>
 
-*Figure 1: The eight CZ-gate layout patterns used for circuit generation. Adapted from Boixo et al. [[5]](#ref5).*
+*Figure 1: The eight CZ-gate layout patterns used for circuit generation [[1]](#ref1).*
 
 Figure 2 shows the tensor network produced by our circuit generation procedure. Its key property is
 high entanglement, which makes the circuit hard to simulate on classical computers. Single-qubit gates
@@ -32,13 +32,13 @@ are drawn from the set {T, X<sup>1/2</sup>, Y<sup>1/2</sup>}.
   <img src="figure/network_L10_d8_360_viewer-colors.gif" alt="Generated tensor network visualization" width="700">
 </p>
 
-*Figure 2: Tensor network of a generated circuit with L = 10 (10 × 10 qubits) and depth d = 8 (own work).*
+*Figure 2: Tensor network of a generated circuit with L = 10 (10 × 10 qubits) and depth d = 8.*
 
-### Tensor contraction
+### Tensor Contraction
 
-A quantum circuit can be simulated by mapping it to a tensor network and contracting it [[8]](#ref8).
-Contracting two tensors means multiplying them and summing over their shared index [[6]](#ref6).
-Figure 3 shows this operation in tensor diagram notation [[7]](#ref7).
+A quantum circuit can be simulated by mapping it to a tensor network and contracting it.
+Contracting two tensors means multiplying them and summing over their shared index.
+Figure 3 shows this operation in tensor diagram notation.
 
 <p align="center">
   <img src="figure/Contraction.png" alt="Contraction mathematical representation" width="700">
@@ -46,7 +46,7 @@ Figure 3 shows this operation in tensor diagram notation [[7]](#ref7).
 
 *Figure 3: Contraction of two tensors over a shared index, in tensor diagram notation [[7]](#ref7).*
 
-As the contraction proceeds, the bond dimensions grow until further contraction becomes very expensive.
+As the contraction proceeds, the bond dimensions grow until contractions become very expensive to get the amplitudes of the circuit.
 Figure 4 shows that even for a small circuit (n = 36 qubits), the bond dimensions grow exponentially
 because of the high entanglement. Without the MPS representation [[4]](#ref4), the bond dimension can
 reach 2<sup>22</sup>. With the MPS representation, it is reduced to 2<sup>11</sup>, simply by changing
@@ -56,7 +56,7 @@ how the data is stored and processed. As a result, the amplitudes of the circuit
   <img src="figure/contraction.gif" alt="Bond dimension growth during contraction" width="700">
 </p>
 
-*Figure 4: Growth of the bond dimensions during the contraction of an n = 36 qubit circuit (own work).*
+*Figure 4: Growth of the bond dimensions during the contraction of an n = 36 qubit circuit.*
 
 Figure 5 illustrates the swap, contract and merge operations on a small five-tensor network after it
 has been converted to the MPS representation.
@@ -69,20 +69,20 @@ has been converted to the MPS representation.
 
 ### Sources of truncation error
 
-Only two operations introduce an error during the contraction [[1]](#ref1): truncating the virtual bond
+Only two operations introduce an error during the contraction: truncating the virtual bond
 to $\chi_{\max}$ during **swaps**, and truncating the physical bond to $D_{\max}$ during **merges**.
 
 #### Swap → virtual bond $\chi$
 
 * **What:** Moving an index one place along the MPS contracts two neighbouring tensors and splits them again by SVD.
-* **Grows:** Each swap can enlarge the virtual bond $\chi$ between the two tensors.
-* **Cut:** If $\chi > \chi_{\max}$, only the $\chi_{\max}$ largest singular values are kept. The discarded part adds to $\varepsilon_{\mathrm{swap}}$.
+* **Grows:** Each swap can enlarge the virtual bond $\chi$ between the two tensors (there are also other possibilities: the virtual bond can be smaller, or within the same level).
+* **Cut:** If $\chi > \chi_{\max}$, only the $\chi_{\max}$ largest singular values are kept (according to the Eckart-Young Theorem). The discarded part adds to $\varepsilon_{\mathrm{swap}}$.
 
 <p align="center">
   <img src="figure/swap.png" alt="Swap of two neighbouring MPS tensors" width="700">
 </p>
 
-*Figure 6: Swapping two neighbouring MPS tensors: contraction, SVD and truncation of the virtual bond. Taken from F. Pan et al. [[1]](#ref1), Fig. 3(a).*
+*Figure 6: Swapping two neighboring MPS tensors: contraction, SVD and truncation of the virtual bond. Taken from F. Pan et al. [[1]](#ref1), Fig. 3(a).*
 
 #### Merge → physical bond $D$
 
@@ -102,6 +102,8 @@ $$
 \varepsilon_{\mathrm{SVD}} = \varepsilon_{\mathrm{swap}} + \varepsilon_{\mathrm{merge}}
 $$
 
+This accumulation is done for the whole tensor network and it is given as the second output of the MPS Calculus kernel.
+
 ### Comparison with CATN
 
 #### Experimental setup
@@ -115,9 +117,9 @@ $$
 | χ<sub>max</sub> (virtual bond)  | 500                                                                      |
 | Contraction order               | Greedy                                                                   |
 
-*Table 1: Experimental setup used for the comparison in Figure 8 and Table 2.*
+*Table 1: Experimental setup used.*
 
-#### Results
+#### Results and Discussion
 
 The code is written in Python and compared against the reference implementation CATN [[2]](#ref2).
 As Figure 8 shows, we obtain the exact solution for small qubit counts such as n = 100 and n = 400.
@@ -133,7 +135,7 @@ the edge with the *smallest index*. Both implementations use the same greedy cri
   <img src="figure/img_4.png" alt="Error comparison against CATN" width="700">
 </p>
 
-*Figure 8: True error of our implementation vs. CATN [[2]](#ref2) for different system sizes, using both circuit generators (own work).*
+*Figure 8: True error of our implementation vs. CATN for different system sizes, using both circuit generators.*
 
 #### Reported ε vs. true error
 
@@ -157,7 +159,7 @@ The reported truncation error $\varepsilon_{\mathrm{SVD}}$ is an **indicator, no
 
 ### Greedy contraction criterion
 
-The greedy criterion is a simple heuristic that picks the cheapest edge to contract next [[1]](#ref1):
+The greedy criterion is a simple heuristic that picks the cheapest edge to contract next:
 
 $$
 \mathrm{cost}(\mu, \nu) = \log \mathrm{Size}(\mu) + \log \mathrm{Size}(\nu) - 2 \log D_{\mu\nu}
@@ -174,7 +176,7 @@ Figure 9 shows a similar analysis that we used to find where the contraction ord
   <img src="figure/Dmaxsweep.png" alt="Dmax sweep for different contraction orders" width="700">
 </p>
 
-*Figure 9: Error vs. physical bond dimension cap $D_{\max}$ for CATN's contraction order and our contraction order, both run with our kernel (own work).*
+*Figure 9: Error vs. physical bond dimension cap $D_{\max}$ for CATN's contraction order and our contraction order, both run with our kernel.*
 
 With CATN's order, the solution becomes exact once $D_{\max} \geq 128$. With our order, it is still not
 exact at $D_{\max} = 200$. Both runs use our kernel, so this analysis isolated the edge-selection
