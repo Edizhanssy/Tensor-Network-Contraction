@@ -1,3 +1,5 @@
+# AI usage is avaliable for this particular code!
+
 # Accuracy gap on the authors' circuits (n >= 900): we truncate (eps 7.7e-10 at n=900), CATN does not.
 # Two hypotheses, tested by changing ONE parameter at a time:
 #   H1  CATN's reverse=True (reverse an MPS when that needs fewer swaps -> fewer truncations; our B6)

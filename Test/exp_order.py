@@ -1,3 +1,5 @@
+# AI usage is avaliable for this particular code!
+
 # Record the order in which CATN contracts the authors' circuit, as (i, j) = "tensor i eats tensor j".
 # The indices are positions in the tensor list A that catn_compare.build() returns, the same list our
 # kernel gets, so the recorded order can be replayed in MPSCalculus (next step).

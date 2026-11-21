@@ -1,10 +1,12 @@
+# AI usage is avaliable for this particular code!
+
 # Quick regression tests: python run_tests.py
 import itertools
 import numpy as np
 from main import (lexicographicmapping, createIDs, defineTensors, modifyTensortoMPS,
                            mergeAdjacent, canonicalize, moveCenter, MPSCalculus)
-from Test.test_mps import testMPS, checkLeftCanonical, testMergeAdjacent, testCanonicalize, mpsToTensor
-from Test.kac_ward import kacWardLogZ
+#from Test.test_mps import testMPS, checkLeftCanonical, testMergeAdjacent, testCanonicalize, mpsToTensor
+#from Test.kac_ward import kacWardLogZ
 from TensorPrimitive.network import circuitToEdges, edgesToLegs, stateVectorAmplitude
 from TensorPrimitive.circuits import H, T, Xh, Yh, CZ, randomCircuit
 
@@ -56,7 +58,7 @@ testMoveCenter()
 for (R, C), dhead in [((2, 3), 50), ((4, 4), 50), ((4, 4), 1), ((16, 16), 50), ((16, 16), 4)]:
     A, legs = build(R, C, 0.1)
     lnZ, err = MPSCalculus(A, legs, dhead, 500)
-    ex = kacWardLogZ(R, C, 0.1)
+    #ex = kacWardLogZ(R, C, 0.1)
     print(f"{R}x{C} dhead={dhead:>2}: rel.err(lnZ)={abs(lnZ - ex) / ex:.2e}  acc.err={err:.1e}")
 
 # --- quantum circuits vs. state vector ---

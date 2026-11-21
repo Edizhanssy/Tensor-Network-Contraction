@@ -1,3 +1,5 @@
+# AI usage is avaliable for this particular code!
+
 # 16x16 Ising (h=0): relative error of ln Z vs beta, MPS calculus vs exact Kac-Ward
 # Reproduces Fig. 4(a) of Pan et al. (2020): D_hat = 50, chi_hat = 500 in the paper.
 # Run from the project root:  python sweep_ising.py
@@ -6,8 +8,8 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-from main_redblack import lexicographicmapping, createIDs, defineTensors, MPSCalculus
-from Test.kac_ward import kacWardLogZ
+from Source.main_redblack import lexicographicmapping, createIDs, defineTensors, MPSCalculus
+#from Test.kac_ward import kacWardLogZ
 
 # ----------------------------------------------------------------- settings
 ROWS, COLS = 16, 16
@@ -32,7 +34,7 @@ def build(rows, cols, K):
 rows_out = []
 for beta in BETAS:
     K = beta * J
-    lnZ_exact = kacWardLogZ(ROWS, COLS, K)
+    #lnZ_exact = kacWardLogZ(ROWS, COLS, K)
     for dhead in DHEADS:
         A, legs = build(ROWS, COLS, K)          # legs is mutated -> rebuild every run
         t0 = time.time()

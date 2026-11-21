@@ -14,7 +14,6 @@ def key(a, b):
 
 def build(owners):
     # fresh bond dictionary w[(a, b)] = bond dimension and neighbour sets nbr[a]
-    # (merge changes both in place, so every replay needs a new pair)
     w = {}
     for k1, k2 in owners.values():
         w[key(k1, k2)] = w.get(key(k1, k2), 1) * 2     # parallel legs multiply
@@ -31,9 +30,9 @@ def merge(w, nbr, i, j):
     nbr[i].remove(j)
     nbr[j].remove(i)
     for k in nbr[j]:
-        size = w.pop(key(j, k))                        # bond j-k ...
+        size = w.pop(key(j, k))                        # bond j-k
         nbr[i].add(k)
-        w[key(i, k)] = w.get(key(i, k), 1) * size      # ... becomes i-k (multiplies if i-k exists)
+        w[key(i, k)] = w.get(key(i, k), 1) * size      # becomes i-k (multiplies if i-k exists)
         nbr[k].remove(j)                               # k now points to i instead of j
         nbr[k].add(i)
     nbr[j] = set()
@@ -42,8 +41,8 @@ def merge(w, nbr, i, j):
 
 def replay(owners, trace):
     # replays the kernel's contraction order on the graph
-    # dense[s]  = log2 dense size of the tensor produced at step s (no rank reduction)
-    # frames[s] = copy of the bond dictionary after step s (the data of one animation frame)
+    # dense[s] = log2 dense size of the tensor produced at step s
+    # frames[s] = copy of the bond dictionary after step s
     w, nbr = build(owners)
     dense, frames = [], []
     for i, j, *_ in trace:
@@ -70,12 +69,12 @@ def layout(owners, n_nodes, seed=0):
 
 
 def frame_data(s, trace, frames, pos):
-    # data of animation frame s (state AFTER step s of the trace)
-    #   nodes : alive tensors (survivors; the eaten j's are gone)
-    #   xyz   : (len(nodes), 3) positions
-    #   size  : log2 dense size of every alive tensor (sum of log2 of its bonds)
-    #   edges : {log2 bond dimension: [(p_a, p_b), ...]} - edges grouped by bond size
-    #   cur   : the tensor that just absorbed another one (i of step s)
+    # data of animation frame s
+    # nodes : alive tensors
+    # xyz   : (len(nodes), 3) positions
+    # size  : log2 dense size of every alive tensor
+    # edges : {log2 bond dimension: [(p_a, p_b), ...]}
+    # cur   : the tensor that just absorbed another one (i of step s)
     eaten = {t[1] for t in trace[:s + 1]}
     w = frames[s]
     nodes = [v for v in pos if v not in eaten]
@@ -122,7 +121,7 @@ def make_traces(s, trace, frames, pos, max_lb, cmax, colors):
     return traces
 
 
-# ---- size comparison over circuits (results are in the notes, kept for reproduction) ----
+#size comparison over circuits (results are in the notes, kept for reproduction)
 def compare_sizes(circuits=((4, 8), (5, 12), (6, 16), (8, 16), (10, 16))):
     for L, d in circuits:
         A, el, owners = network(L, d)
@@ -139,20 +138,20 @@ if __name__ == '__main__':
     L, d = 6, 16
     A, el, owners = network(L, d)
 
-    # ---- kernel run + replay ----
+    # kernel run + replay
     trace = []
     MPSCalculus(A, edgesToLegs(el), 50, 500, trace=trace)
     dense, frames = replay(owners, trace)
     ls2 = [t[2] / np.log(2) for t in trace]            # kernel's log2 size (after cutBond)
 
-    # ---- checks ----
+    # checks
     print(len(A), "tensors,", len(owners), "edges")
     print("steps:", len(dense))
     print("last dense:", dense[-1], " edges in last frame:", len(frames[-1]))
     print("dense >= ls everywhere:", all(dn >= l - 1e-9 for dn, l in zip(dense, ls2)))
     print(f"max dense 2^{max(dense):.1f}   max ls 2^{max(ls2):.1f}")
 
-    # ---- frame data ----
+    # frame data
     pos = layout(owners, len(A))
     max_lb = max(int(round(np.log2(v))) for f in frames for v in f.values())
     first_big = next(s for s, f in enumerate(frames) if max(f.values(), default=2) > 2)
@@ -161,7 +160,7 @@ if __name__ == '__main__':
     colors = sample_colorscale('Blues', [0.25 + 0.75 * k / (max_lb - 1) for k in range(max_lb)])
     steps = list(range(430, 462))                       # short test; full: range(0, first_big, 20) + range(first_big, len(trace))
 
-    # ---- animation  ----
+    # animation
     #fig = go.Figure(make_traces(445, trace, frames, pos, max_lb, max(dense), colors))
     updatemenus = [dict(type='buttons', buttons=[dict(label='Play', method='animate', args=[None, dict(
         frame=dict(duration=100, redraw=True), fromcurrent=True)])])]
@@ -184,7 +183,7 @@ if __name__ == '__main__':
     fig.show()
     fig.write_html("contraction_anim.html")
 
-    # ---- video export: renders the same frames (no buttons/slider) as PNGs, then one MP4 ----
+    # video export: renders the same frames (no buttons/slider) as PNGs, then one MP4
     import os
     os.makedirs("frames", exist_ok=True)
     figs, paths = [], []
@@ -193,7 +192,7 @@ if __name__ == '__main__':
         f.update_layout(title=f"step {fr.name}", legend=dict(x=0, y=1), scene=scene)
         figs.append(f)
         paths.append(f"frames/{k:04d}.png")
-    # PNGs via a headless Chromium (playwright) instead of kaleido, which kept failing here
+
     from playwright.sync_api import sync_playwright
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
@@ -208,8 +207,7 @@ if __name__ == '__main__':
             print(f"\r{path}", end="")
         browser.close()
     print()
-    # MP4 instead of GIF: PowerPoint (Mac) misplaces the cropped delta frames of a Pillow GIF,
-    # and a video can be set to "Start: On Click"
+    # MP4 instead of GIF
     import imageio.v2 as imageio
     fps = 4                                             # frames per second (lower = slower)
     with imageio.get_writer("contraction.mp4", fps=fps, codec="libx264",

@@ -1,10 +1,10 @@
 import numpy as np
-from Test.test_mps import testMPS
-from Test.test_mps import checkLeftCanonical
-from Test.test_mps import mpsToTensor
+#from Test.test_mps import testMPS
+#from Test.test_mps import checkLeftCanonical
+#from Test.test_mps import mpsToTensor
 import scipy.linalg
 
-
+# This specific function is added via AI guidance!
 def safeSVD(mat):
     # fast divide-and-conquer (gesdd) first; on the rare LAPACK non-convergence
     # retry this one matrix with the slower but more robust QR-iteration driver (gesvd)
@@ -240,7 +240,7 @@ def mergeMPSTensors(A_m, legs, i, j):
     X = np.einsum('asx, xsb->ab', M2, N1)
 
     # log-scale normalization, once for all branches
-    # (c == 0: amplitude is exactly zero, e.g. destructive interference -> keep X, log(c) = 0)
+    # (c == 0: amplitude is exactly zero)
     c = np.linalg.norm(X)
     if c == 0:
         c = 1.0

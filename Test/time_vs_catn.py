@@ -1,3 +1,5 @@
+# AI usage is avaliable for this particular code!
+
 # Wall-clock timing: our final kernel (main_redblack.py, B4) vs. CATN, on identical circuits and D_hat/chi_hat.
 # Unlike catn_compare.py there is NO tracemalloc here (it inflated the times several-fold), so these are
 # the numbers for the report. Circuit loading and the CATN wrapper are reused from catn_compare.py.

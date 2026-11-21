@@ -1,3 +1,5 @@
+# AI usage is avaliable for this particular code!
+
 # Apples to apples: our MPS-calculus kernel vs. the authors' CATN code (github.com/panzhang83/catn),
 # on the SAME circuits with the SAME D_hat / chi_hat.
 #

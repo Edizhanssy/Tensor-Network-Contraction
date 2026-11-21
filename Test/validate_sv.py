@@ -1,3 +1,5 @@
+# AI usage is avaliable for this particular code!
+
 # Is eps_SVD a trustworthy error estimate? Compare MPS calculus against an exact state vector
 # for a few chosen (L, d) runs -- also beyond SV_MAX_QUBITS of the sweep (n = 25 is ~0.5 GB).
 #
@@ -9,7 +11,7 @@ import argparse, time
 import numpy as np
 from TensorPrimitive.circuits import randomCircuit
 from TensorPrimitive.network import circuitToEdges, edgesToLegs, stateVectorAmplitude
-from main_redblack import MPSCalculus
+from Source.main_redblack import MPSCalculus
 from sweep_circuits import SEED, DHEAD, XHEAD
 
 ap = argparse.ArgumentParser()

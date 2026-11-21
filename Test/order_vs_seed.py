@@ -1,3 +1,5 @@
+# AI usage is avaliable for this particular code!
+
 # Why is d=12 truncated but d=14 exact (L=5)?  Two hypotheses, two experiments:
 #   Experiment 1 "seed":  different circuits (circuit seed 0..N-1), same method (deterministic greedy order)
 #                         -> large spread in eps  => the circuit realization matters
@@ -28,8 +30,8 @@ FIELDS = ["exp", "L", "d", "circuit_seed", "order_seed", "status", "seconds", "e
 
 # ------------------------------------------------------------- children
 def build(L, d, circuit_seed):
-    from circuits import randomCircuit
-    from network import circuitToEdges, edgesToLegs
+    from TensorPrimitive.circuits import randomCircuit
+    from TensorPrimitive.network import circuitToEdges, edgesToLegs
     circuit = randomCircuit(L, d, seed=circuit_seed)
     x = [0] * (L * L)
     A, el = circuitToEdges(circuit, x)
@@ -37,7 +39,7 @@ def build(L, d, circuit_seed):
 
 
 def child_mps(L, d, circuit_seed, order_seed):
-    from main_redblack import MPSCalculus
+    from Source.main_redblack import MPSCalculus
     _, _, A, legs = build(L, d, circuit_seed)
     rng = None if order_seed < 0 else np.random.default_rng(order_seed)
     t0 = time.time()
@@ -46,7 +48,7 @@ def child_mps(L, d, circuit_seed, order_seed):
 
 
 def child_sv(L, d, circuit_seed):
-    from network import stateVectorAmplitude
+    from TensorPrimitive.network import stateVectorAmplitude
     circuit, x, _, _ = build(L, d, circuit_seed)
     ref = stateVectorAmplitude(circuit, x)
     return dict(re=float(ref.real), im=float(ref.imag))

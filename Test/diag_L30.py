@@ -1,3 +1,5 @@
+# AI usage is avaliable for this particular code!
+
 # Is ln|<0..0|C|0..0>| at L = 30 (d = 8) numerically well defined?
 # Our exact runs (eps ~ 1e-26) disagree with CATN by ~31 in ln|amp|, and with each other.
 # Hypothesis: the amplitude is ~e^-37 below a typical one (~1e-16, i.e. machine precision), so it is

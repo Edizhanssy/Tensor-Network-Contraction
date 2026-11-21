@@ -3,7 +3,7 @@
 #   python test_components_mac.py
 import copy, string
 import numpy as np
-import main, main_parallel, main_redblack
+import main, Source.main_parallel, Source.main_redblack
 
 
 def rand_net(edges, n, seed):

@@ -8,8 +8,7 @@ CZ = np.diag([1, 1, 1, -1]).astype(complex).reshape(2, 2, 2, 2)
 
 
 def czPattern(k, L):
-    """Qubit pairs that get a CZ in layout k = 1..8 (Fig. 13), qubit q = L*r + c.
-    Every layout is sparse: over the 8 layouts each grid edge gets exactly one CZ."""
+    """Qubit pairs that get a CZ in layout k = 1..8 (Fig. 13), qubit q = L*r + c"""
     pairs = []
     for r in range(L):
         for c in range(L):
@@ -30,13 +29,8 @@ def czPattern(k, L):
 
 
 def randomCircuit(L, d, seed=0):
-    """Random circuit as in the authors' circuit files (CATN repo, Fig. 13 layouts):
-    1. H on every qubit.
-    2. Layer t applies the CZs of layout 1, 2, ..., 8 (then repeats).
-    3. A qubit without a CZ in this layer gets a single-qubit gate only if this is the
-       first layer or it had a CZ in the previous layer. Its first gate is T; later
-       gates are chosen at random from {T, X^1/2, Y^1/2}, never the same as its previous gate.
-    4. H on every qubit."""
+    """ Random circuit as in the authors' circuit files """
+
     rng = np.random.default_rng(seed)
     n = L * L
     circuit = [(H, [q]) for q in range(n)]              # H on every qubit

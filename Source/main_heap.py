@@ -2,7 +2,7 @@ import numpy as np
 import scipy.linalg
 import heapq
 
-
+# This specific function is added via AI guidance!
 def safeSVD(mat):
     # fast divide-and-conquer (gesdd) first; on the rare LAPACK non-convergence
     # retry this one matrix with the slower but more robust QR-iteration driver (gesvd)

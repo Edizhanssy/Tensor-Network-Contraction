@@ -47,7 +47,7 @@ def edgesToLegs(edge_lists):
 
 
 def stateVectorAmplitude(circuit, x):
-    """Reference (validation only): full state vector, possible up to 25 qubits."""
+    """Reference: full state vector, possible up to 25 qubits!!"""
     n = len(x)
     psi = np.zeros([2] * n, dtype=complex)
     psi[(0,) * n] = 1

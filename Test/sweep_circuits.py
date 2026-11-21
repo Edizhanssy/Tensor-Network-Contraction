@@ -1,3 +1,5 @@
+# AI usage is avaliable for this particular code!
+
 # Random-circuit sweep for MPS calculus: how far can one machine go?
 #   Sweep A ("Fig. 5"):  L grows at fixed depth d   -> time / memory vs. #qubits
 #   Sweep B ("depth"):   d grows at fixed L         -> memory and eps_SVD explode
@@ -35,7 +37,7 @@ FIELDS = ["sweep", "L", "n_qubits", "d", "dhead", "xhead", "status", "seconds",
 def single_run(L, d, dhead, xhead):
     from TensorPrimitive.circuits import randomCircuit
     from TensorPrimitive.network import circuitToEdges, edgesToLegs, stateVectorAmplitude
-    from main_redblack import MPSCalculus
+    from Source.main_redblack import MPSCalculus
 
     n = L * L
     circuit = randomCircuit(L, d, seed=SEED)
