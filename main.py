@@ -462,7 +462,7 @@ def cutBond(A_m, cano, i, p_i, k, p_k, dhead, err, tol=1e-12):
 
 # main MPS Calculus kernel!
 # Z will be returning in logarithmic scale!!
-def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False, stats=None, order=None, tiebreak="id"):
+def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False, stats=None, order=None, tiebreak="id", trace=None):
     # tiebreak: "id" = B3 (ties -> smaller IDs), "fifo" = CATN's rule (ties -> edge pushed longest ago,
     # the higher-degree tensor survives, all edges around the merged tensor are re-pushed)
 
@@ -524,9 +524,11 @@ def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False,
         ls[i] += ls[j] - 2 * np.log(D_ij)
         log_scale = log_c + log_scale
         if last:
-            # this connected component is now one scalar Z. A network can have several components
-            # (e.g. a short circuit whose CZs split the qubits into groups): multiply their scalars
             Z_total = Z_total * Z.item()
+            if trace is not None:
+                mps_size = sum(t.size for t in A_m[i])
+                max_bond = max(t.shape[2] for t in A_m[i])
+                trace.append((i, j, ls[i], mps_size, max_bond))
             A_m[i], A_m[j], legs[i], legs[j] = [], [], [], []
             alive.discard(i)
             alive.discard(j)
@@ -549,10 +551,15 @@ def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None, compress=False,
                 del legs[k][p_k+1]
 
                 D_ik = A_m[i][p_i].shape[1]
-                cutBond(A_m, cano, i, p_i, k, p_k, dhead, err, tol)   # A2: always, lossless below D_hat
+                cutBond(A_m, cano, i, p_i, k, p_k, dhead, err, tol)   # always, lossless below D_hat
                 chi = A_m[i][p_i].shape[1]
                 ls[i] += np.log(chi) - np.log(D_ik)
                 ls[k] += np.log(chi) - np.log(D_ik)
+
+        if trace is not None:
+            mps_size = sum(t.size for t in A_m[i])
+            max_bond = max(t.shape[2] for t in A_m[i])
+            trace.append((i, j, ls[i], mps_size, max_bond))
 
         if compress:
             compressMPS(A_m, cano, i, Xhead, tol, err)
