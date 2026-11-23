@@ -1,8 +1,48 @@
-# Seminar – Advanced Topics in Quantum Computing
+# Seminar – Advanced Topics of Quantum Computing
 
 **Name, Surname:** Edizhan Sadettin Yildiz
 
 **Matriculation Number:** 03815718
+
+## Repository structure
+
+| Path                                  | Content                                                                                  |
+|---------------------------------------|------------------------------------------------------------------------------------------|
+| `main.py`                             | Baseline implementation of the MPS calculus kernel                                       |
+| `main_heap.py`                        | Kernel used for all results in this README (greedy edge selection with a heap)           |
+| `TensorPrimitive/`                    | Circuit construction (`circuits.py`) and circuit → tensor network mapping (`network.py`) |
+| `example_circuit.py`                  | Minimal example: amplitude ⟨0…0\|C\|0…0⟩ of one random circuit                            |
+| `legacy/Test/`                        | Scripts that produce the results |
+| `Data/`                               | Raw outputs of these scripts (logs, CSV, recorded CATN orders)                           |
+| `figure/`                             | Figures used in this README                                                              |
+| `legacy/` (everything except `Test/`) | Older versions and experiments, **not part of the submission**                           |
+
+## Run
+
+```bash
+pip install -r requirements.txt
+python example_circuit.py            # L = 10 (n = 100), d = 8
+python example_circuit.py 30 8       # n = 900
+```
+
+Expected output of the first command (exact contraction, no truncation):
+
+```text
+n = 100, depth = 8, D_max = 50, chi_max = 500
+ln|amp| = -37.588259...   eps_SVD = ~1e-27
+```
+
+## AI declaration
+
+| Part                               | Where          | AI usage    |
+|------------------------------------|----------------|-------------|
+| `safeSVD` (gesdd → gesvd fallback) | `main_heap.py` | AI-assisted |
+| QR step of `cutBond`               | `main_heap.py` | AI-assisted |
+| `popBestEdge`                      | `main_heap.py` | AI-assisted |
+| FIFO tie-break variant             | `main_heap.py` | AI-assisted |
+| Test and benchmark scripts         | `legacy/Test/` | AI-assisted |
+
+All other parts of the kernel, the circuit construction and the analysis are my own work.
 
 ## Tensor Network Contraction
 
@@ -34,8 +74,8 @@ are drawn from the set {T, X<sup>1/2</sup>, Y<sup>1/2</sup>}.
 
 *Figure 2: Tensor network of a generated circuit with L = 10 (10 × 10 qubits) and depth d = 8.*
 
-Table 1 lists the gate content of this circuit layer by layer and tracks how the entanglement builds up. As can be seen from the table tabulated, 
-together with the two H layers (200 gates), the circuit has 684 gates. Its tensor network has 884 tensors and 964 bonds.
+Table 1 lists the gate content of this circuit layer by layer and tracks how the entanglement builds up.
+Together with the two H layers (200 gates), the circuit has 684 gates. Its tensor network has 884 tensors and 964 bonds.
 
 | Layer | CZ pattern | Dir. | CZ gates | Single-qubit gates | CZ across middle cut (cum.) | Light cone of centre qubit |
 |:-----:|:----------:|:----:|---------:|-------------------:|----------------------------:|---------------------------:|
@@ -55,14 +95,13 @@ together with the two H layers (200 gates), the circuit has 684 gates. Its tenso
   right half is at most $S \leq \min(10, n/2) = 10$ ebits. An exact MPS across this cut therefore needs a
   bond dimension of at most $2^{10}$.
 
-* **Light cone:** after d = 8 layers, the center qubit influences 16 of the 100 qubits (13 % on average).
+* **Light cone:** after d = 8 layers, the centre qubit influences 16 of the 100 qubits (13 % on average).
 
 * **Treewidth:** a min-degree heuristic gives an upper bound of 9, so contraction costs $2^{\mathcal{O}(9)}$.
 
 At d = 8 the entanglement is therefore still far from its maximum of 50 ebits. This is why the n = 100 circuit
 can still be contracted exactly (Figure 8). The entanglement keeps growing with the depth d and the
 system size n, and the exact contraction cost grows exponentially with it.
-
 
 ### Tensor Contraction
 
@@ -76,17 +115,17 @@ Figure 3 shows this operation in tensor diagram notation.
 
 *Figure 3: Contraction of two tensors over a shared index, in tensor diagram notation [[7]](#ref7).*
 
-As the contraction proceeds, the bond dimensions grow until contractions become very expensive to get the amplitudes of the circuit.
-Figure 4 shows that even for a small circuit (n = 36 qubits), the bond dimensions grow exponentially
-because of the high entanglement. Without the MPS representation, the bond dimension can
-reach 2<sup>22</sup>. With the MPS representation, it is reduced to 2<sup>11</sup>, simply by changing
-how the data is stored and processed. As a result, the amplitudes of the circuits can be computed much faster.
+As the contraction proceeds, the tensors grow until the contractions needed for the amplitude become very expensive to contract further until getting the amplitude.
+Figure 4 shows that even for a small circuit (n = 36 qubits), the tensors grow exponentially
+because of the high entanglement. Without the MPS representation, the largest intermediate tensor
+has 2<sup>22</sup> elements. With the MPS representation, the largest bond dimension is 2<sup>11</sup>,
+without any truncation. The reduction comes only from how the data is stored and processed, not from an approximation.
 
 <p align="center">
   <img src="figure/contraction.gif" alt="Bond dimension growth during contraction" width="700">
 </p>
 
-*Figure 4: Growth of the bond dimensions during the contraction of an n = 36 qubit circuit.*
+*Figure 4: Growth of the tensors during the contraction of an n = 36 qubit circuit.*
 
 Figure 5 illustrates the swap, contract and merge operations on a small five-tensor network after it
 has been converted to the MPS representation.
@@ -95,7 +134,7 @@ has been converted to the MPS representation.
   <img src="figure/fivepointnetwork.png" alt="MPS calculus steps for a five-tensor network" width="700">
 </p>
 
-*Figure 5: MPS calculus steps (converting to MPS From, select, swap, contract, merge) for a five-tensor network.*
+*Figure 5: MPS calculus steps (conversion to MPS form, select, swap, contract, merge) for a five-tensor network.*
 
 ### Sources of truncation error
 
@@ -105,22 +144,22 @@ to $\chi_{\max}$ during **swaps**, and truncating the physical bond to $D_{\max}
 #### Swap → virtual bond $\chi$
 
 * **What:** Moving an index one place along the MPS contracts two neighboring tensors and splits them again by SVD.
-* **Grows:** Each swap can enlarge the virtual bond $\chi$ between the two tensors (other possibilities: the virtual bond can be smaller, or within the same level).
-* **Cut:** If $\chi > \chi_{\max}$, only the $\chi_{\max}$ largest singular values are kept (according to the Eckart-Young Theorem). 
-The discarded part adds to $\varepsilon_{\mathrm{swap}}$.
+* **Grows:** Each swap can enlarge the virtual bond $\chi$ between the two tensors (it can also shrink or stay the same).
+* **Cut:** If $\chi > \chi_{\max}$, only the $\chi_{\max}$ largest singular values are kept (Eckart–Young theorem).
+  The discarded part adds to $\varepsilon_{\mathrm{swap}}$.
 
 <p align="center">
   <img src="figure/swap.png" alt="Swap of two neighbouring MPS tensors" width="700">
 </p>
 
-*Figure 6: Swapping two neighboring MPS tensors: contraction, SVD, and truncation of the virtual bond.*
+*Figure 6: Swapping two neighbouring MPS tensors: contraction, SVD, and truncation of the virtual bond.*
 
 #### Merge → physical bond $D$
 
 * **What:** After a contraction, two parallel edges to the same tensor fuse into one index.
 * **Grows:** The fused index has dimension $d_a \cdot d_b$.
-* **Cut:** If $d_a \cdot d_b > D_{\max}$, the MPS is canonicalized and the bond is SVD-truncated to $D_{\max}$. 
-* The discarded part adds to $\varepsilon_{\mathrm{merge}}$.
+* **Cut:** If $d_a \cdot d_b > D_{\max}$, the MPS is canonicalized and the bond is SVD-truncated to $D_{\max}$.
+  The discarded part adds to $\varepsilon_{\mathrm{merge}}$.
 
 <p align="center">
   <img src="figure/merge.png" alt="Merging parallel edges into one physical bond" width="700">
@@ -134,7 +173,7 @@ $$
 \varepsilon_{\mathrm{SVD}} = \varepsilon_{\mathrm{swap}} + \varepsilon_{\mathrm{merge}}
 $$
 
-This accumulation is done for the whole tensor network, and it is given as the second output of the MPS Calculus kernel.
+This sum is accumulated over the whole tensor network and returned as the second output of the MPS calculus kernel.
 
 ### Comparison with CATN
 
@@ -151,23 +190,30 @@ This accumulation is done for the whole tensor network, and it is given as the s
 
 *Table 2: Experimental setup for the simulations.*
 
+#### Validation of the kernel
+
+* **State vector:** for n ≤ 25 (L = 3, 4, 5; d = 6 … 16) the amplitude agrees with an exact state-vector
+  simulation to a relative error of at most **4.1e-14**.
+* **Replay of CATN's order:** at n = 900 (authors' circuit files), our kernel run with CATN's recorded
+  contraction order agrees with CATN's amplitude to **1.7e-13**.
+
 #### Results and Discussion
 
 The code is written in Python and compared against the reference implementation CATN.
 As Figure 8 shows, the exact solution is obtained for small qubit counts such as *n = 100* and *n = 400*.
-The comparison is done both with our circuit generation and with the reference circuit generation.
+The comparison is done both on our circuits and on the authors' published circuit files.
 The y-axis shows the true error, computed against the exact reference value of each configuration.
 
-For *n = 900* and *n = 1600* there is no clear winner. We analyzed the difference at n = 900 for CATN's
-circuit generation and found no problem in our kernel. The difference comes from the tie-break rule:
-when several edges have the same cost, CATN selects the *oldest* edge, while our implementation selects
-the edge with the *smallest index*. Both implementations use the same greedy criterion.
+For *n = 900* and *n = 1600* there is no clear winner. We analyzed the difference at n = 900 on the authors'
+circuit files and found no problem in our kernel (see the replay above). In our view, the main difference
+is the tie-break rule: when several edges have the same cost, CATN selects the *oldest* edge, while our
+implementation selects the edge with the *smallest index*. Both implementations use the same greedy criterion.
 
 <p align="center">
   <img src="figure/img_4.png" alt="Error comparison against CATN" width="700">
 </p>
 
-*Figure 8: True error of our implementation vs. CATN for different system sizes, using both circuit generators.*
+*Figure 8: True error of our implementation vs. CATN for different system sizes. Left: our circuits; right: the authors' circuit files.*
 
 #### Reported ε vs. true error
 
@@ -177,15 +223,15 @@ The reported truncation error $\varepsilon_{\mathrm{SVD}}$ is an **indicator, no
 * **Local vs. global:** each cut is optimal for the MPS of one tensor (see [Sources of truncation error](#sources-of-truncation-error)), not for the final amplitude.
 * **Sum:** errors from different cuts can amplify or cancel each other. $\varepsilon$ only adds up the discarded weights.
 
-| Circuit generator |    n | Reported ε | True error | **True / ε** | True / √ε |
-|-------------------|-----:|-----------:|-----------:|-------------:|----------:|
-| Ours              |  900 |     3.1e-7 |     1.1e-4 |      **370** |      0.20 |
-| Ours              | 1600 |     6.3e-2 |     1.5e-2 |     **0.24** |      0.06 |
-| Authors'          |  900 |    7.7e-10 |     4.1e-7 |      **530** |     0.015 |
-| Authors'          | 1600 |     7.6e-3 |     2.4e-2 |      **3.1** |      0.27 |
+| Circuits       |    n | Reported ε | True error | **True / ε** | True / √ε |
+|----------------|-----:|-----------:|-----------:|-------------:|----------:|
+| Ours           |  900 |     3.1e-7 |     1.1e-4 |      **370** |      0.20 |
+| Ours           | 1600 |     6.3e-2 |     1.5e-2 |     **0.24** |      0.06 |
+| Authors' files |  900 |    7.7e-10 |     4.1e-7 |      **530** |     0.015 |
+| Authors' files | 1600 |     7.6e-3 |     2.4e-2 |      **3.1** |      0.27 |
 
-*Table 3: Reported truncation error vs. true error.* 
-ε is the share of the $\sigma^2$ weight discarded at each cut, summed over all cuts. The true error is the deviation of the final amplitude from the reference. 
+*Table 3: Reported truncation error vs. true error.*
+ε is the share of the $\sigma^2$ weight discarded at each cut, summed over all cuts. The true error is the deviation of the final amplitude from the reference.
 $D_{\max} = 50$, $\chi_{\max} = 500$, our kernel.
 
 **True / ε** ranges from 0.24 to 530. That is more than three orders of magnitude, and wrong in both directions.
@@ -204,7 +250,7 @@ This is the logarithm of the size of the merged tensor.
 
 ### Effect of the contraction order
 
-Figure 9 shows a similar analysis that we used to find where the contraction orders differ.
+Figure 9 compares the two contraction orders directly by running both with our kernel.
 
 <p align="center">
   <img src="figure/Dmaxsweep.png" alt="Dmax sweep for different contraction orders" width="700">
@@ -213,8 +259,9 @@ Figure 9 shows a similar analysis that we used to find where the contraction ord
 *Figure 9: Error vs. physical bond dimension cap $D_{\max}$ for CATN's contraction order and our contraction order, both run with our kernel.*
 
 With CATN's order, the solution becomes exact once $D_{\max} \geq 128$. With our order, it is still not
-exact at $D_{\max} = 200$. Both runs use our kernel, so this analysis isolated the edge-selection
-(tie-break) rule as the source of the difference between the two implementations.
+exact at $D_{\max} = 200$. Both runs use our kernel, so this analysis isolates the **contraction order**
+as the source of the difference, not the kernel. It does not isolate which part of the order causes it.
+The tie-break rule is the most likely candidate, since both codes use the same greedy criterion.
 
 ## References
 
@@ -222,7 +269,7 @@ exact at $D_{\max} = 200$. Both runs use our kernel, so this analysis isolated t
 
 <a id="ref2"></a>[2] F. Pan, "catn," GitHub repository. [Online]. Available: <https://github.com/panzhang83/catn>
 
-<a id="ref3"></a>[3] "Tensor-Network-Contraction," GitHub repository. [Online]. Available: <https://github.com/Edizhansy/Tensor-Network-Contraction>
+<a id="ref3"></a>[3] "Tensor-Network-Contraction," GitHub repository. [Online]. Available: <https://github.com/Edizhanssy/Tensor-Network-Contraction>
 
 <a id="ref4"></a>[4] ITensor, "MPS and MPO examples," ITensorMPS.jl documentation. [Online]. Available: <https://docs.itensor.org/ITensorMPS/stable/examples/MPSandMPO.html>
 

@@ -157,30 +157,18 @@ def logSize(mps):
 
 
 def ContractionOrder(A_m, legs, rng=None, tie_tol=1e-9):
-    # rng=None: deterministic greedy, the FIRST cheapest edge wins (baseline behaviour)
-    # rng given: collect ALL edges whose cost equals the minimum (up to tie_tol, since the
-    #            costs are sums of logs and log2+log2 == log4 may fail in floating point)
-    #            and pick one of them at random -> a different but equally greedy order
-    best_cost = np.inf
-    best_edges = []
+    # greedy: cheapest edge; ties (same log2 bucket) -> most triangles, then smaller IDs
+    best_key, best_edge = None, None
     for mu in range(len(legs)):
         for p, nu in enumerate(legs[mu]):
             if mu < nu:
                 D_mu_nu = A_m[mu][p].shape[1]
                 cost = logSize(A_m[mu]) + logSize(A_m[nu]) - 2 * np.log(D_mu_nu)
-                if rng is None:
-                    if cost < best_cost:
-                        best_cost = cost
-                        best_edges = [(mu, nu)]
-                elif cost < best_cost - tie_tol:          # strictly cheaper: new candidate list
-                    best_cost = cost
-                    best_edges = [(mu, nu)]
-                elif abs(cost - best_cost) <= tie_tol and (mu, nu) not in best_edges:   # a tie
-                    best_edges.append((mu, nu))
-
-    if rng is None or len(best_edges) == 1:
-        return best_edges[0]
-    return best_edges[rng.integers(len(best_edges))]
+                tri = len(set(legs[mu]) & set(legs[nu]))
+                key = (int(round(cost / np.log(2))), -tri, mu, nu)
+                if best_key is None or key < best_key:
+                    best_key, best_edge = key, (mu, nu)
+    return best_edge
 
 def tensorSwap(A_m, legs, i, p, Xhead = None, err=None, tol=1e-12):
 
@@ -414,7 +402,7 @@ def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None):
 
 
 
-if __name__ == '__main__':
+if __name__ == '__circuit__':
 
     # tensors
     numberofColumns = 4
