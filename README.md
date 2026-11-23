@@ -1,9 +1,19 @@
+# Seminar – Advanced Topics of Quantum Computing
+
+## Tensor Network Contraction
+
+### Approximate algorithm for random quantum circuits via Contraction
+
+This repository contains an implementation of the approximate tensor network contraction
+algorithm for random quantum circuits, based on the paper *Contracting Arbitrary Tensor Networks: General
+Approximate Algorithm and Applications in Graphical Models and Quantum Circuit Simulations* [[1]](#ref1).
+
 ## Repository structure
 
 | Path                                  | Content                                                                                  |
 |---------------------------------------|------------------------------------------------------------------------------------------|
 | `main.py`                             | Prototype: the MPS calculus kernel as presented in the talk                                      |
-| `main_heap.py`                        | KSame algorithm with a heap for edge selection; used for the large runs (n = 900, 1600) because it is much faster          |
+| `main_heap.py`                        | Same algorithm with a heap for edge selection; used for the large runs (n = 900, 1600) because it is much faster          |
 | `TensorPrimitive/`                    | Circuit construction (`circuits.py`) and circuit → tensor network mapping (`network.py`) |
 | `example_circuit.py`                  | Minimal example: amplitude ⟨0…0\|C\|0…0⟩ of one random circuit                            |
 | `legacy/Test/`                        | Scripts that produce the results |
@@ -38,16 +48,6 @@ ln|amp| = −35.0669102715   eps_SVD = 1.20e-29
 | Test and benchmark scripts         | `legacy/Test/`         | AI-assisted |
 
 All other parts of the kernel, the circuit construction and the analysis are my own work.
-
-# Seminar – Advanced Topics of Quantum Computing
-
-## Tensor Network Contraction
-
-### Approximate algorithm for random quantum circuits via Contraction
-
-This repository contains an implementation of the approximate tensor network contraction
-algorithm for random quantum circuits, based on the paper *Contracting Arbitrary Tensor Networks: General
-Approximate Algorithm and Applications in Graphical Models and Quantum Circuit Simulations* [[1]](#ref1).
 
 ### Circuit Generation
 
@@ -204,7 +204,7 @@ The y-axis shows the true error, computed against the exact reference value of e
 For *n = 900* and *n = 1600* there is no clear winner. We analyzed the difference at n = 900 on the authors'
 circuit files and found no problem in our kernel (see the replay above). In our view, the main difference
 is the tie-break rule: when several edges have the same cost, CATN selects the *oldest* edge, while our
-implementation selects the edge with the *smallest index*. Both implementations use the same greedy criterion.
+implementation prefers the edge that closes the most triangles and then the smallest index. Both implementations use the same greedy criterion.
 
 <p align="center">
   <img src="figure/img_4.png" alt="Error comparison against CATN" width="700">
