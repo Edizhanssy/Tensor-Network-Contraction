@@ -8,7 +8,7 @@
 
 ### Approximate algorithm for random quantum circuits via Contraction
 
-This repository [[3]](#ref3) contains an implementation of the approximate tensor network contraction
+This repository contains an implementation of the approximate tensor network contraction
 algorithm for random quantum circuits, based on the paper *Contracting Arbitrary Tensor Networks: General
 Approximate Algorithm and Applications in Graphical Models and Quantum Circuit Simulations* [[1]](#ref1).
 
@@ -34,7 +34,8 @@ are drawn from the set {T, X<sup>1/2</sup>, Y<sup>1/2</sup>}.
 
 *Figure 2: Tensor network of a generated circuit with L = 10 (10 × 10 qubits) and depth d = 8.*
 
-Table 1 lists the gate content of this circuit layer by layer and tracks how the entanglement builds up.
+Table 1 lists the gate content of this circuit layer by layer and tracks how the entanglement builds up. As can be seen from the table tabulated, 
+together with the two H layers (200 gates), the circuit has 684 gates. Its tensor network has 884 tensors and 964 bonds.
 
 | Layer | CZ pattern | Dir. | CZ gates | Single-qubit gates | CZ across middle cut (cum.) | Light cone of centre qubit |
 |:-----:|:----------:|:----:|---------:|-------------------:|----------------------------:|---------------------------:|
@@ -48,20 +49,18 @@ Table 1 lists the gate content of this circuit layer by layer and tracks how the
 | 8     | 8          | ↕    | 25       | 50                 | 10                          | 16 / 100                   |
 | **Σ** |            |      | **180**  | **304**            | **10**                      |                            |
 
-*Table 1: CZ layers and gate counts of the circuit in Figure 2 (L = 10, d = 8, seed = 0). Together with the
-two H layers (200 gates), the circuit has 684 gates. Its tensor network has 884 tensors and 964 bonds.*
+*Table 1: CZ layers and gate counts of the circuit in Figure 2 (L = 10, d = 8, seed = 0).*
 
 * **Cut bound:** each CZ across a cut adds at most one ebit, so the entanglement between the left and the
   right half is at most $S \leq \min(10, n/2) = 10$ ebits. An exact MPS across this cut therefore needs a
   bond dimension of at most $2^{10}$.
 
-* **Light cone:** after d = 8 layers, the centre qubit influences 16 of the 100 qubits (13 % on average).
+* **Light cone:** after d = 8 layers, the center qubit influences 16 of the 100 qubits (13 % on average).
 
-* **Treewidth:** a min-degree heuristic gives an upper bound of 9, so contraction costs
-  $2^{\mathcal{O}(9)}$ [[8]](#ref8).
+* **Treewidth:** a min-degree heuristic gives an upper bound of 9, so contraction costs $2^{\mathcal{O}(9)}$.
 
 At d = 8 the entanglement is therefore still far from its maximum of 50 ebits. This is why the n = 100 circuit
-can still be contracted exactly (see Figure 8). The entanglement keeps growing with the depth d and the
+can still be contracted exactly (Figure 8). The entanglement keeps growing with the depth d and the
 system size n, and the exact contraction cost grows exponentially with it.
 
 
@@ -79,7 +78,7 @@ Figure 3 shows this operation in tensor diagram notation.
 
 As the contraction proceeds, the bond dimensions grow until contractions become very expensive to get the amplitudes of the circuit.
 Figure 4 shows that even for a small circuit (n = 36 qubits), the bond dimensions grow exponentially
-because of the high entanglement. Without the MPS representation [[4]](#ref4), the bond dimension can
+because of the high entanglement. Without the MPS representation, the bond dimension can
 reach 2<sup>22</sup>. With the MPS representation, it is reduced to 2<sup>11</sup>, simply by changing
 how the data is stored and processed. As a result, the amplitudes of the circuits can be computed much faster.
 
@@ -96,7 +95,7 @@ has been converted to the MPS representation.
   <img src="figure/fivepointnetwork.png" alt="MPS calculus steps for a five-tensor network" width="700">
 </p>
 
-*Figure 5: MPS calculus steps (swap, contract, merge) for a five-tensor network.*
+*Figure 5: MPS calculus steps (converting to MPS From, select, swap, contract, merge) for a five-tensor network.*
 
 ### Sources of truncation error
 
@@ -105,35 +104,37 @@ to $\chi_{\max}$ during **swaps**, and truncating the physical bond to $D_{\max}
 
 #### Swap → virtual bond $\chi$
 
-* **What:** Moving an index one place along the MPS contracts two neighbouring tensors and splits them again by SVD.
-* **Grows:** Each swap can enlarge the virtual bond $\chi$ between the two tensors (there are also other possibilities: the virtual bond can be smaller, or within the same level).
-* **Cut:** If $\chi > \chi_{\max}$, only the $\chi_{\max}$ largest singular values are kept (according to the Eckart-Young Theorem). The discarded part adds to $\varepsilon_{\mathrm{swap}}$.
+* **What:** Moving an index one place along the MPS contracts two neighboring tensors and splits them again by SVD.
+* **Grows:** Each swap can enlarge the virtual bond $\chi$ between the two tensors (other possibilities: the virtual bond can be smaller, or within the same level).
+* **Cut:** If $\chi > \chi_{\max}$, only the $\chi_{\max}$ largest singular values are kept (according to the Eckart-Young Theorem). 
+The discarded part adds to $\varepsilon_{\mathrm{swap}}$.
 
 <p align="center">
   <img src="figure/swap.png" alt="Swap of two neighbouring MPS tensors" width="700">
 </p>
 
-*Figure 6: Swapping two neighboring MPS tensors: contraction, SVD and truncation of the virtual bond. Taken from F. Pan et al. [[1]](#ref1), Fig. 3(a).*
+*Figure 6: Swapping two neighboring MPS tensors: contraction, SVD, and truncation of the virtual bond.*
 
 #### Merge → physical bond $D$
 
 * **What:** After a contraction, two parallel edges to the same tensor fuse into one index.
 * **Grows:** The fused index has dimension $d_a \cdot d_b$.
-* **Cut:** If $d_a \cdot d_b > D_{\max}$, the MPS is canonicalised and the bond is SVD-truncated to $D_{\max}$. The discarded part adds to $\varepsilon_{\mathrm{merge}}$.
+* **Cut:** If $d_a \cdot d_b > D_{\max}$, the MPS is canonicalized and the bond is SVD-truncated to $D_{\max}$. 
+* The discarded part adds to $\varepsilon_{\mathrm{merge}}$.
 
 <p align="center">
   <img src="figure/merge.png" alt="Merging parallel edges into one physical bond" width="700">
 </p>
 
-*Figure 7: Merging two parallel edges into one physical bond, followed by truncation to $D_{\max}$. Taken from F. Pan et al. [[1]](#ref1), Fig. 3(c).*
+*Figure 7: Merging two parallel edges into one physical bond, followed by truncation to $D_{\max}$.*
 
-**Everything else is lossless.** The accumulated truncation error is
+**Everything else is lossless.** The accumulated truncation error is:
 
 $$
 \varepsilon_{\mathrm{SVD}} = \varepsilon_{\mathrm{swap}} + \varepsilon_{\mathrm{merge}}
 $$
 
-This accumulation is done for the whole tensor network and it is given as the second output of the MPS Calculus kernel.
+This accumulation is done for the whole tensor network, and it is given as the second output of the MPS Calculus kernel.
 
 ### Comparison with CATN
 
@@ -148,16 +149,16 @@ This accumulation is done for the whole tensor network and it is given as the se
 | χ<sub>max</sub> (virtual bond)  | 500                                                                      |
 | Contraction order               | Greedy                                                                   |
 
-*Table 2: Experimental setup used.*
+*Table 2: Experimental setup for the simulations.*
 
 #### Results and Discussion
 
-The code is written in Python and compared against the reference implementation CATN [[2]](#ref2).
-As Figure 8 shows, we obtain the exact solution for small qubit counts such as n = 100 and n = 400.
+The code is written in Python and compared against the reference implementation CATN.
+As Figure 8 shows, the exact solution is obtained for small qubit counts such as *n = 100* and *n = 400*.
 The comparison is done both with our circuit generation and with the reference circuit generation.
 The y-axis shows the true error, computed against the exact reference value of each configuration.
 
-For n = 900 and n = 1600 there is no clear winner. We analyzed the difference at n = 900 for CATN's
+For *n = 900* and *n = 1600* there is no clear winner. We analyzed the difference at n = 900 for CATN's
 circuit generation and found no problem in our kernel. The difference comes from the tie-break rule:
 when several edges have the same cost, CATN selects the *oldest* edge, while our implementation selects
 the edge with the *smallest index*. Both implementations use the same greedy criterion.
@@ -183,8 +184,9 @@ The reported truncation error $\varepsilon_{\mathrm{SVD}}$ is an **indicator, no
 | Authors'          |  900 |    7.7e-10 |     4.1e-7 |      **530** |     0.015 |
 | Authors'          | 1600 |     7.6e-3 |     2.4e-2 |      **3.1** |      0.27 |
 
-*Table 3: Reported truncation error vs. true error. ε is the share of the $\sigma^2$ weight discarded at each cut, summed over all cuts. 
-The true error is the deviation of the final amplitude from the reference. $D_{\max} = 50$, $\chi_{\max} = 500$, our kernel.*
+*Table 3: Reported truncation error vs. true error.* 
+ε is the share of the $\sigma^2$ weight discarded at each cut, summed over all cuts. The true error is the deviation of the final amplitude from the reference. 
+$D_{\max} = 50$, $\chi_{\max} = 500$, our kernel.
 
 **True / ε** ranges from 0.24 to 530. That is more than three orders of magnitude, and wrong in both directions.
 **True / √ε** stays between 0.015 and 0.27, so it is below 1 on all four circuits. This is measured, not guaranteed.
