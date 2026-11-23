@@ -39,7 +39,7 @@ def build(L, d, circuit_seed):
 
 
 def child_mps(L, d, circuit_seed, order_seed):
-    from Source.main_redblack import MPSCalculus
+    from main_heap import MPSCalculus
     _, _, A, legs = build(L, d, circuit_seed)
     rng = None if order_seed < 0 else np.random.default_rng(order_seed)
     t0 = time.time()

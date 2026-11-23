@@ -401,8 +401,23 @@ def MPSCalculus(A, legs, dhead, Xhead=None, tol=1e-12, rng=None):
     return log_scale + np.log(Z.item()), err[0]
 
 
+if __name__ == '__main__':
+    from TensorPrimitive.circuits import randomCircuit
+    from TensorPrimitive.network import circuitToEdges, edgesToLegs
 
-if __name__ == '__circuit__':
+    L, d = 10, 8                      # n = 100 qubits
+    dhead, Xhead = 50, 500            # D_max, chi_max
+
+    circuit = randomCircuit(L, d, seed=0)
+    A, edges = circuitToEdges(circuit, [0] * (L * L))
+    legs = edgesToLegs(edges)
+
+    ln_amp, eps = MPSCalculus(A, legs, dhead, Xhead)
+    print(f"ln|amp| = {ln_amp.real:.10f}   eps_SVD = {eps:.2e}")
+
+
+'''
+if __name__ == '__main__':
 
     # tensors
     numberofColumns = 4
@@ -441,4 +456,4 @@ if __name__ == '__circuit__':
     print(np.exp(lnZ), abs(np.exp(lnZ) - Z_bf_4x4) / Z_bf_4x4)
     print("the accumulated error is: ", accumerror)
 
-
+'''

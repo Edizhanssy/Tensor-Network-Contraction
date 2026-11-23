@@ -13,7 +13,7 @@ import sys, time
 import numpy as np
 from TensorPrimitive.circuits import randomCircuit
 from TensorPrimitive.network import circuitToEdges, edgesToLegs
-from main_redblack import MPSCalculus
+from main_heap import MPSCalculus
 
 L = int(sys.argv[1]) if len(sys.argv) > 1 else 30
 n = L * L

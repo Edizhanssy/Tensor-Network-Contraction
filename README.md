@@ -1,15 +1,9 @@
-# Seminar – Advanced Topics of Quantum Computing
-
-**Name, Surname:** Edizhan Sadettin Yildiz
-
-**Matriculation Number:** 03815718
-
 ## Repository structure
 
 | Path                                  | Content                                                                                  |
 |---------------------------------------|------------------------------------------------------------------------------------------|
-| `main.py`                             | Baseline implementation of the MPS calculus kernel                                       |
-| `main_heap.py`                        | Kernel used for all results in this README (greedy edge selection with a heap)           |
+| `main.py`                             | Prototype: the MPS calculus kernel as presented in the talk                                      |
+| `main_heap.py`                        | KSame algorithm with a heap for edge selection; used for the large runs (n = 900, 1600) because it is much faster          |
 | `TensorPrimitive/`                    | Circuit construction (`circuits.py`) and circuit → tensor network mapping (`network.py`) |
 | `example_circuit.py`                  | Minimal example: amplitude ⟨0…0\|C\|0…0⟩ of one random circuit                            |
 | `legacy/Test/`                        | Scripts that produce the results |
@@ -23,26 +17,29 @@
 pip install -r requirements.txt
 python example_circuit.py            # L = 10 (n = 100), d = 8
 python example_circuit.py 30 8       # n = 900
+python main.py
 ```
 
 Expected output of the first command (exact contraction, no truncation):
 
 ```text
 n = 100, depth = 8, D_max = 50, chi_max = 500
-ln|amp| = -37.588259...   eps_SVD = ~1e-27
+ln|amp| = −35.0669102715   eps_SVD = 1.20e-29
 ```
 
 ## AI declaration
 
-| Part                               | Where          | AI usage    |
-|------------------------------------|----------------|-------------|
-| `safeSVD` (gesdd → gesvd fallback) | `main_heap.py` | AI-assisted |
-| QR step of `cutBond`               | `main_heap.py` | AI-assisted |
-| `popBestEdge`                      | `main_heap.py` | AI-assisted |
-| FIFO tie-break variant             | `main_heap.py` | AI-assisted |
-| Test and benchmark scripts         | `legacy/Test/` | AI-assisted |
+| Part                               | Where                  | AI usage    |
+|------------------------------------|------------------------|-------------|
+| `safeSVD` (gesdd → gesvd fallback) | `main_heap.py/main.py` | AI-assisted |
+| QR step of `cutBond`               | `main_heap.py`         | AI-assisted |
+| `popBestEdge`                      | `main_heap.py`         | AI-assisted |
+| FIFO tie-break variant             | `main_heap.py`         | AI-assisted |
+| Test and benchmark scripts         | `legacy/Test/`         | AI-assisted |
 
 All other parts of the kernel, the circuit construction and the analysis are my own work.
+
+# Seminar – Advanced Topics of Quantum Computing
 
 ## Tensor Network Contraction
 
@@ -115,7 +112,7 @@ Figure 3 shows this operation in tensor diagram notation.
 
 *Figure 3: Contraction of two tensors over a shared index, in tensor diagram notation [[7]](#ref7).*
 
-As the contraction proceeds, the tensors grow until the contractions needed for the amplitude become very expensive to contract further until getting the amplitude.
+As the contraction proceeds, the intermediate tensors grow until further contractions become too expensive.
 Figure 4 shows that even for a small circuit (n = 36 qubits), the tensors grow exponentially
 because of the high entanglement. Without the MPS representation, the largest intermediate tensor
 has 2<sup>22</sup> elements. With the MPS representation, the largest bond dimension is 2<sup>11</sup>,

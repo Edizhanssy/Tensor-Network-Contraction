@@ -8,7 +8,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-from Source.main_redblack import lexicographicmapping, createIDs, defineTensors, MPSCalculus
+from main_heap import lexicographicmapping, createIDs, defineTensors, MPSCalculus
 #from Test.kac_ward import kacWardLogZ
 
 # ----------------------------------------------------------------- settings

@@ -37,7 +37,7 @@ FIELDS = ["sweep", "L", "n_qubits", "d", "dhead", "xhead", "status", "seconds",
 def single_run(L, d, dhead, xhead):
     from TensorPrimitive.circuits import randomCircuit
     from TensorPrimitive.network import circuitToEdges, edgesToLegs, stateVectorAmplitude
-    from Source.main_redblack import MPSCalculus
+    from main_heap import MPSCalculus
 
     n = L * L
     circuit = randomCircuit(L, d, seed=SEED)

@@ -58,7 +58,7 @@ def build(family, circuit, catn_dir):
 
 # ------------------------------------------------------------ the two codes
 def run_ours(A, legs, dhead, xhead):
-    from main_redblack import MPSCalculus
+    from main_heap import MPSCalculus
     lnZ, eps = MPSCalculus(A, legs, dhead, xhead)
     return complex(np.exp(lnZ)), float(eps)                 # eps = sum of discarded weights
 

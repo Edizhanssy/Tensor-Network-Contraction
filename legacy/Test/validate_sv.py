@@ -11,7 +11,7 @@ import argparse, time
 import numpy as np
 from TensorPrimitive.circuits import randomCircuit
 from TensorPrimitive.network import circuitToEdges, edgesToLegs, stateVectorAmplitude
-from Source.main_redblack import MPSCalculus
+from main_heap import MPSCalculus
 from sweep_circuits import SEED, DHEAD, XHEAD
 
 ap = argparse.ArgumentParser()
